@@ -79,7 +79,7 @@ def laplacian_filter(neighborhood, h, s):
     for r in range(len(lap_filt)):
         sum_dij = sum(distance(h, r, neighborhood(r)))
         lap_filt[r, neighborhood[r]] = [-1 * dij / sum_dij for dij in distance(h, r, neighborhood[r])]
-    return s * lap_filt
+    return np.matmul(s, lap_filt)
 
 
 def distance(h, c1, c2):
@@ -89,7 +89,12 @@ def distance(h, c1, c2):
 def car_filter(s):
     dim = min(np.shape(s))
     car_filt = -1 / dim * np.ones((dim, dim)) + np.identity(dim)
-    return s * car_filt
+    if np.ndim(s) == 2:
+        return np.matmul(s, car_filt)
+    elif np.ndim(s) == 3:
+        for tr in range(np.shape(s)[2]):
+            s[:, :, tr] = np.matmul(s[:, :, tr], car_filt)
+        return s
 
 
 def loadmat(filename):
@@ -153,8 +158,8 @@ def runs2trials_end(ss, hs, dur):
     rt = 0
     for s, h in zip(ss, hs):
         trigs = h['EVENT']['TYP']
-        L_pos = [h['EVENT']['POS'][i] - 1 for i, v in enumerate(trigs) if v == 7692 or v == 7693]
-        R_pos = [h['EVENT']['POS'][i] - 1 for i, v in enumerate(trigs) if v == 7702 or v == 7703]
+        L_pos = [h['EVENT']['POS'][i] for i, v in enumerate(trigs) if v == 7692 or v == 7693]
+        R_pos = [h['EVENT']['POS'][i] for i, v in enumerate(trigs) if v == 7702 or v == 7703]
         for l, r in zip(L_pos, R_pos):
             s_L[:, :, lt] = s[l - win:l, :]
             lt = lt + 1
@@ -176,9 +181,11 @@ chan_info = loadmat('chaninfo.mat')['selectedChannelstruct']['selectedChannels']
 fs = h1['SampleRate']
 mu = [8, 12]
 mu_filt = ButterFilter(2, 'band', fs, mu)
-s1 = mu_filt.apply_filter(s1)
-s2 = mu_filt.apply_filter(s2)
-s3 = mu_filt.apply_filter(s3)
-s4 = mu_filt.apply_filter(s4)
+s1_mu = mu_filt.apply_filter(s1)
+s2_mu = mu_filt.apply_filter(s2)
+s3_mu = mu_filt.apply_filter(s3)
+s4_mu = mu_filt.apply_filter(s4)
 
-sL, sR = runs2trials_end([s1, s2, s3, s4], [h1, h2, h3, h4], 0.5)
+sL_mu, sR_mu = runs2trials_end([s1_mu, s2_mu, s3_mu, s4_mu], [h1, h2, h3, h4], 0.5)
+sL_mu_car = car_filter(sL_mu)
+sR_mu_car = car_filter(sR_mu)
