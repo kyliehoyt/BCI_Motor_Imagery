@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.io as spio
 import math
+import seaborn as sns
 
 LargeNeighbors = [[2, 4],
                   [5],
@@ -64,7 +65,6 @@ class ButterFilter(TemporalFilter):
 
     def apply_filter(self, raw_sig):
         b, a = signal.butter(self.n, self.cutoff, self.btype, fs=self.fs)
-        print(b, a)
         return signal.filtfilt(b, a, raw_sig, axis=0, padtype='odd', padlen=3 * (max(len(b), len(a)) - 1))
 
     def plot_freq_response(self):
@@ -87,7 +87,7 @@ def distance(h, c1, c2):
 
 
 def car_filter(s):
-    dim = min(np.shape(s))
+    dim = 32
     car_filt = -1 / dim * np.ones((dim, dim)) + np.identity(dim)
     if np.ndim(s) == 2:
         return np.matmul(s, car_filt)
@@ -150,10 +150,10 @@ def loadmat(filename):
     return _check_keys(data)
 
 
-def runs2trials_end(ss, hs, dur):
+def runs2trials_split(ss, hs, dur):
     win = math.floor(dur * hs[0]['SampleRate'])
-    s_L = np.zeros((win, min(np.shape(ss[0])), 40))
-    s_R = np.zeros((win, min(np.shape(ss[0])), 40))
+    s_L = np.zeros((win, 32, len(ss)*10))
+    s_R = np.zeros((win, 32, len(ss)*10))
     lt = 0
     rt = 0
     for s, h in zip(ss, hs):
@@ -167,6 +167,31 @@ def runs2trials_end(ss, hs, dur):
             rt = rt + 1
     return s_L, s_R
 
+def runs2trials(ss, hs, dur):
+    win = math.floor(dur * hs[0]['SampleRate'])
+    trs = np.zeros((win, 32, len(ss)*20))
+    t = 0
+    for s, h in zip(ss, hs):
+        trigs = h['EVENT']['TYP']
+        pos = [h['EVENT']['POS'][i] for i, v in enumerate(trigs) if v in [7692, 7693, 7702, 7703]]
+        for p in pos:
+            trs[:, :, t] = s[p - win:p, :]
+            t = t + 1
+    return trs
+
+
+def run_psd(s, h, fmax):
+    maxfbin = int(fmax/2)
+    s_psd = np.zeros((maxfbin, np.shape(s)[1], np.shape(s)[2]))
+    for tr in range(np.shape(s_psd)[2]):
+        for ch in range(np.shape(s_psd)[1]):
+            f, s_psd[:, ch, tr] = np.array(signal.periodogram(s[:, ch, tr], fs=h['SampleRate'], scaling='density'))[:, :maxfbin]
+    s_psd_avg = np.mean(s_psd, 2)
+    s_psd_avg = np.swapaxes(s_psd_avg/np.max(s_psd_avg), 0, 1)
+    ylabels = [str.strip() for str in h['Label'][:np.shape(s)[1]]]
+    sns.heatmap(s_psd_avg, xticklabels=f, yticklabels=ylabels)
+    return
+
 
 h1 = loadmat('h1.mat')['h1']
 h2 = loadmat('h2.mat')['h2']
@@ -179,13 +204,20 @@ s4 = loadmat('s4.mat')['s4']
 chan_info = loadmat('chaninfo.mat')['selectedChannelstruct']['selectedChannels']
 
 fs = h1['SampleRate']
-mu = [8, 12]
-mu_filt = ButterFilter(2, 'band', fs, mu)
-s1_mu = mu_filt.apply_filter(s1)
-s2_mu = mu_filt.apply_filter(s2)
-s3_mu = mu_filt.apply_filter(s3)
-s4_mu = mu_filt.apply_filter(s4)
+broad = [4, 30]
+broad_filt = ButterFilter(2, 'band', fs, broad)
+runs = [s1, s2, s3, s4]
+heads = [h1, h2, h3, h4]
 
-sL_mu, sR_mu = runs2trials_end([s1_mu, s2_mu, s3_mu, s4_mu], [h1, h2, h3, h4], 0.5)
-sL_mu_car = car_filter(sL_mu)
-sR_mu_car = car_filter(sR_mu)
+plt.subplot(1, 4, 1)
+i = 1
+for s, h in zip(runs, heads):
+    s = broad_filt.apply_filter(s)
+    s_tr = runs2trials([s], [h], 0.5)
+    s_tr_filt = car_filter(s_tr)
+    plt.subplot(1, 4, i)
+    i = i+1
+    run_psd(s_tr_filt, h, 32)
+
+plt.show()
+
