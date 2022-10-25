@@ -1,3 +1,4 @@
+import scipy.stats
 from scipy import signal
 import matplotlib.pyplot as plt
 import numpy as np
@@ -89,9 +90,9 @@ def distance(h, c1, c2):
 def car_filter(s):
     dim = 32
     car_filt = -1 / dim * np.ones((dim, dim)) + np.identity(dim)
-    if np.ndim(s) == 2:
+    if np.ndim(s) == 2:  # raw data (samples, channels)
         return np.matmul(s, car_filt)
-    elif np.ndim(s) == 3:
+    elif np.ndim(s) == 3:  # trial data (win, channels, trials)
         for tr in range(np.shape(s)[2]):
             s[:, :, tr] = np.matmul(s[:, :, tr], car_filt)
         return s
@@ -158,39 +159,60 @@ def runs2trials_split(ss, hs, dur):
     rt = 0
     for s, h in zip(ss, hs):
         trigs = h['EVENT']['TYP']
-        L_pos = [h['EVENT']['POS'][i] for i, v in enumerate(trigs) if v == 7692 or v == 7693]
-        R_pos = [h['EVENT']['POS'][i] for i, v in enumerate(trigs) if v == 7702 or v == 7703]
-        for l, r in zip(L_pos, R_pos):
+        l_pos = [h['EVENT']['POS'][i] for i, v in enumerate(trigs) if v == 7692 or v == 7693]
+        r_pos = [h['EVENT']['POS'][i] for i, v in enumerate(trigs) if v == 7702 or v == 7703]
+        for l, r in zip(l_pos, r_pos):
             s_L[:, :, lt] = s[l - win:l, :]
             lt = lt + 1
             s_R[:, :, rt] = s[r - win:r, :]
             rt = rt + 1
     return s_L, s_R
 
+
 def runs2trials(ss, hs, dur):
     win = math.floor(dur * hs[0]['SampleRate'])
     trs = np.zeros((win, 32, len(ss)*20))
     t = 0
     for s, h in zip(ss, hs):
-        trigs = h['EVENT']['TYP']
-        pos = [h['EVENT']['POS'][i] for i, v in enumerate(trigs) if v in [7692, 7693, 7702, 7703]]
+        triggers = h['EVENT']['TYP']
+        pos = [h['EVENT']['POS'][i] for i, v in enumerate(triggers) if v in [7692, 7693, 7702, 7703]]
         for p in pos:
             trs[:, :, t] = s[p - win:p, :]
             t = t + 1
     return trs
 
 
-def run_psd(s, h, fmax):
-    maxfbin = int(fmax/2)
-    s_psd = np.zeros((maxfbin, np.shape(s)[1], np.shape(s)[2]))
-    for tr in range(np.shape(s_psd)[2]):
-        for ch in range(np.shape(s_psd)[1]):
-            f, s_psd[:, ch, tr] = np.array(signal.periodogram(s[:, ch, tr], fs=h['SampleRate'], scaling='density'))[:, :maxfbin]
-    s_psd_avg = np.mean(s_psd, 2)
-    s_psd_avg = np.swapaxes(s_psd_avg/np.max(s_psd_avg), 0, 1)
-    ylabels = [str.strip() for str in h['Label'][:np.shape(s)[1]]]
-    sns.heatmap(s_psd_avg, xticklabels=f, yticklabels=ylabels)
-    return
+def run_psd_fisher(s, h, fmax):
+    max_f_bin = int(fmax/2)
+    c = np.shape(s)[0]
+    n_chan = np.shape(s)[2]
+    n_tr = np.shape(s)[3]
+    s_psd = np.zeros((max_f_bin, n_chan, n_tr, c))
+    for j in range(c):
+        for tr in range(n_tr):
+            for ch in range(n_chan):
+                f, s_psd[:, ch, tr, j] = np.array(signal.periodogram(s[j, :, ch, tr], fs=h['SampleRate'], scaling='density'))[:, :max_f_bin]
+    # s_psd shape is (freq, channels, trials, classes)
+    mean_intra = np.mean(s_psd, 2)
+    var_intra = np.var(s_psd, 2)
+    mean_inter = np.array([np.mean(mean_intra, 2) for t in range(c)])
+    mean_inter = np.moveaxis(mean_inter, 0, -1)
+    fisher = np.sum((n_tr*(mean_intra-mean_inter)**2), 2)/np.sum((n_tr*var_intra), 2)
+    fisher = np.swapaxes(fisher, 0, 1)
+    ylab = [st.strip() for st in h['Label'][:n_chan]]
+    xlab = [int(hz) for hz in f]
+    sns.heatmap(fisher, xticklabels=xlab, yticklabels=ylab, vmin=0, vmax=1)
+    return fisher
+
+
+def rank_avg_fisher(run_fishers):
+    ranks = np.zeros_like(run_fishers)
+    for f, fish in enumerate(run_fishers):
+        sh = np.shape(fish)
+        rank = scipy.stats.rankdata(fish, 'min')
+        ranks[f, :, :] = np.reshape(np.ones_like(rank)/rank, sh)
+    return sum(np.multiply(ranks, run_fishers), 0)
+
 
 
 h1 = loadmat('h1.mat')['h1']
@@ -208,16 +230,29 @@ broad = [4, 30]
 broad_filt = ButterFilter(2, 'band', fs, broad)
 runs = [s1, s2, s3, s4]
 heads = [h1, h2, h3, h4]
-
-plt.subplot(1, 4, 1)
+plt.subplot(2, 3, 1)
 i = 1
-for s, h in zip(runs, heads):
-    s = broad_filt.apply_filter(s)
-    s_tr = runs2trials([s], [h], 0.5)
-    s_tr_filt = car_filter(s_tr)
-    plt.subplot(1, 4, i)
-    i = i+1
-    run_psd(s_tr_filt, h, 32)
+fmax = 32
+n_chan = 32
+fishers = np.zeros((len(runs), n_chan, int(fmax/2)))
+for S, H in zip(runs, heads):
+    S = broad_filt.apply_filter(S)
+    s_split = list(runs2trials_split([S], [H], 0.5))
+    s_split_filt = np.array([car_filter(s_j) for s_j in s_split])
+    plt.subplot(2, 3, i)
+    plt.margins(0, 0.1)
+    plt.title("Run " + str(i))
+    fishers[i-1, :, :] = run_psd_fisher(s_split_filt, H, fmax)
+    i = i + 1
 
+xlabels = [int(x) for x in range(0, fmax, 2)]
+ylabels = [st.strip() for st in h1['Label'][:n_chan]]
+plt.subplot(2, 3, 5)
+plt.title("Rank weighted sum")
+rank_sum_fisher = rank_avg_fisher(fishers)
+sns.heatmap(rank_sum_fisher, xticklabels=xlabels, yticklabels=ylabels)
+plt.subplot(2, 3, 6)
+plt.title("log(Rank weighted sum)")
+sns.heatmap(np.log10(rank_sum_fisher), xticklabels=xlabels, yticklabels=ylabels)
 plt.show()
 
