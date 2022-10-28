@@ -5,6 +5,7 @@ import numpy as np
 import scipy.io as spio
 import math
 import seaborn as sns
+import itertools
 
 LargeNeighbors = [[2, 4],
                   [5],
@@ -75,27 +76,44 @@ class ButterFilter(TemporalFilter):
         return
 
 
-def laplacian_filter(neighborhood, h, s):
-    lap_filt = np.identity(len(neighborhood))
-    for r in range(len(lap_filt)):
-        sum_dij = sum(distance(h, r, neighborhood(r)))
-        lap_filt[r, neighborhood[r]] = [-1 * dij / sum_dij for dij in distance(h, r, neighborhood[r])]
-    return np.matmul(s, lap_filt)
+class SpatialFilter:
+    def __init__(self, name):
+        self.type = name
+
+    def filter_raw_sig(self, s, filt):
+        return np.matmul(s, filt)
 
 
-def distance(h, c1, c2):
-    return [((h(c).X - h(c1).X) ** 2 + (h(c).Y - h(c1).Y) ** 2 + (h(c).Z - h(c1).Z) ** 2) ** 0.5 for c in c2]
+class LaplacianFilter(SpatialFilter):
+    def __init__(self, name, neighborhood, h):
+        super().__init__(name)
+        self.neighborhood = neighborhood
+        self.filter = np.identity(len(self.neighborhood))
+        for r in range(len(self.filter)):
+            sum_dij = sum(self.distance(h, r, self.neighborhood(r)))
+            self.filter[r, self.neighborhood[r]] = [-1 * dij / sum_dij for dij in self.distance(h, r, self.neighborhood[r])]
+
+    def distance(self, h, c1, c2):
+        return [((h(c).X - h(c1).X) ** 2 + (h(c).Y - h(c1).Y) ** 2 + (h(c).Z - h(c1).Z) ** 2) ** 0.5 for c in c2]
+
+    def apply_filter(self, s):
+        super().filter_raw_sig(s, self.filter)
+
+    # def display filter
 
 
-def car_filter(s):
-    dim = 32
-    car_filt = -1 / dim * np.ones((dim, dim)) + np.identity(dim)
-    if np.ndim(s) == 2:  # raw data (samples, channels)
-        return np.matmul(s, car_filt)
-    elif np.ndim(s) == 3:  # trial data (win, channels, trials)
-        for tr in range(np.shape(s)[2]):
-            s[:, :, tr] = np.matmul(s[:, :, tr], car_filt)
-        return s
+class CARFilter(SpatialFilter):
+    def __init__(self, nchan):
+        self.dim = nchan
+        self.filter = -1 / self.dim * np.ones((self.dim, self.dim)) + np.identity(self.dim)
+
+    def apply_filter(self, s):
+        if np.ndim(s) == 2:  # raw data (samples, channels)
+            super().filter_raw_sig(s, self.filter)
+        elif np.ndim(s) == 3:  # trial data (win, channels, trials)
+            for tr in range(np.shape(s)[2]):
+                s[:, :, tr] = np.matmul(s[:, :, tr], self.filter)
+            return s
 
 
 def loadmat(filename):
@@ -214,6 +232,22 @@ def rank_avg_fisher(run_fishers):
     return sum(np.multiply(ranks, run_fishers), 0)
 
 
+def select_features(ranked_features, xlabs, ylabs, nfeat):
+    sh = np.shape(ranked_features)
+    rank = np.reshape(scipy.stats.rankdata(ranked_features, 'min'), sh)
+    mask = np.where(rank <= nfeat, True, False)
+    features = list(itertools.product(ylabs, xlabs))
+    selected_features = np.multiply(features, mask)
+    selected_features = selected_features.ravel()[np.flatnonzero(selected_features)]
+    return mask, selected_features
+
+
+
+
+
+
+
+
 
 h1 = loadmat('h1.mat')['h1']
 h2 = loadmat('h2.mat')['h2']
@@ -234,11 +268,12 @@ plt.subplot(2, 3, 1)
 i = 1
 fmax = 32
 n_chan = 32
+car_filt = CARFilter(n_chan)
 fishers = np.zeros((len(runs), n_chan, int(fmax/2)))
 for S, H in zip(runs, heads):
     S = broad_filt.apply_filter(S)
     s_split = list(runs2trials_split([S], [H], 0.5))
-    s_split_filt = np.array([car_filter(s_j) for s_j in s_split])
+    s_split_filt = np.array([car_filt.apply_filter(s_j) for s_j in s_split])
     plt.subplot(2, 3, i)
     plt.margins(0, 0.1)
     plt.title("Run " + str(i))
