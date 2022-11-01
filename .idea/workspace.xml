@@ -4,9 +4,17 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="59eb55c6-454f-4ae9-84b1-22a86ce5229f" name="Changes" comment="attempted fisher score and rank weighted sum">
+    <list default="true" id="59eb55c6-454f-4ae9-84b1-22a86ce5229f" name="Changes" comment="reorganized spatial filters and attempted feature selector. Next I want to put LDA and fisher stuff into a class, make a generic psd function, covariance matrix generator, cross-validation function, posterior prob calculator">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Signal Processing.py" beforeDir="false" afterPath="$PROJECT_DIR$/Signal Processing.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/h1.mat" beforeDir="false" afterPath="$PROJECT_DIR$/h1.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/h2.mat" beforeDir="false" afterPath="$PROJECT_DIR$/h2.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/h3.mat" beforeDir="false" afterPath="$PROJECT_DIR$/h3.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/h4.mat" beforeDir="false" afterPath="$PROJECT_DIR$/h4.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/s1.mat" beforeDir="false" afterPath="$PROJECT_DIR$/s1.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/s2.mat" beforeDir="false" afterPath="$PROJECT_DIR$/s2.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/s3.mat" beforeDir="false" afterPath="$PROJECT_DIR$/s3.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/s4.mat" beforeDir="false" afterPath="$PROJECT_DIR$/s4.mat" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -75,7 +83,14 @@
       <option name="project" value="LOCAL" />
       <updated>1666667691928</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="reorganized spatial filters and attempted feature selector. Next I want to put LDA and fisher stuff into a class, make a generic psd function, covariance matrix generator, cross-validation function, posterior prob calculator">
+      <created>1666929225764</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1666929225764</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -128,6 +143,7 @@
     <MESSAGE value="confirmed CAR filter" />
     <MESSAGE value="psd attempt and homework s, h files" />
     <MESSAGE value="attempted fisher score and rank weighted sum" />
-    <option name="LAST_COMMIT_MESSAGE" value="attempted fisher score and rank weighted sum" />
+    <MESSAGE value="reorganized spatial filters and attempted feature selector. Next I want to put LDA and fisher stuff into a class, make a generic psd function, covariance matrix generator, cross-validation function, posterior prob calculator" />
+    <option name="LAST_COMMIT_MESSAGE" value="reorganized spatial filters and attempted feature selector. Next I want to put LDA and fisher stuff into a class, make a generic psd function, covariance matrix generator, cross-validation function, posterior prob calculator" />
   </component>
 </project>

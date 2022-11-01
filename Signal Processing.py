@@ -171,8 +171,8 @@ def loadmat(filename):
 
 def runs2trials_split(ss, hs, dur):
     win = math.floor(dur * hs[0]['SampleRate'])
-    s_L = np.zeros((win, 32, len(ss)*10))
-    s_R = np.zeros((win, 32, len(ss)*10))
+    s_L = np.zeros((win, 13, len(ss)*10))
+    s_R = np.zeros((win, 13, len(ss)*10))
     lt = 0
     rt = 0
     for s, h in zip(ss, hs):
@@ -189,7 +189,7 @@ def runs2trials_split(ss, hs, dur):
 
 def runs2trials(ss, hs, dur):
     win = math.floor(dur * hs[0]['SampleRate'])
-    trs = np.zeros((win, 32, len(ss)*20))
+    trs = np.zeros((win, 13, len(ss)*20))
     t = 0
     for s, h in zip(ss, hs):
         triggers = h['EVENT']['TYP']
@@ -223,41 +223,73 @@ def run_psd_fisher(s, h, fmax):
     return fisher
 
 
+def run_psd(s, h, fmax):
+    max_f_bin = int(fmax / 2)
+    # s shape is (time, channels, trials)
+    n_chan = np.shape(s)[1]
+    n_tr = np.shape(s)[2]
+    s_psd = np.zeros((max_f_bin, n_chan, n_tr))
+    for tr in range(n_tr):
+        for ch in range(n_chan):
+            f, s_psd[:, ch, tr] = np.array(
+                signal.periodogram(s[:, ch, tr], fs=h['SampleRate'], scaling='density'))[:, :max_f_bin]
+    # s_psd shape is (freq, channels, trials)
+    return s_psd
+
+
+def trial_psd(tr, fs, fmax):
+    max_f_bin = int(fmax / 2)
+    # tr shape is (samples, channels)
+    n_chan = np.shape(tr)[1]
+    t_psd = np.zeros((max_f_bin, n_chan))
+    for ch in range(n_chan):
+        f, t_psd[:, ch] = np.array(
+            signal.periodogram(tr[:, ch], fs=fs, scaling='density'))[:, :max_f_bin]
+    # t_psd shape is (freq, channels)
+    return t_psd
+
+
 def rank_avg_fisher(run_fishers):
     ranks = np.zeros_like(run_fishers)
     for f, fish in enumerate(run_fishers):
         sh = np.shape(fish)
-        rank = scipy.stats.rankdata(fish, 'min')
+        rank = np.size(fish) - scipy.stats.rankdata(fish, 'min') + 1
         ranks[f, :, :] = np.reshape(np.ones_like(rank)/rank, sh)
     return sum(np.multiply(ranks, run_fishers), 0)
 
 
 def select_features(ranked_features, xlabs, ylabs, nfeat):
     sh = np.shape(ranked_features)
-    rank = np.reshape(scipy.stats.rankdata(ranked_features, 'min'), sh)
-    mask = np.where(rank <= nfeat, True, False)
-    features = list(itertools.product(ylabs, xlabs))
-    selected_features = np.multiply(features, mask)
-    selected_features = selected_features.ravel()[np.flatnonzero(selected_features)]
-    return mask, selected_features
+    rank = np.reshape((np.size(ranked_features) - scipy.stats.rankdata(ranked_features, 'min')+1), sh)
+    feat_mask = np.where(rank <= nfeat, 1, 0)
+    features = np.array([[y, x] for y in ylabs for x in xlabs])
+    flatmap = np.array(range(np.shape(features)[0]))
+    selected_features = flatmap.ravel()[np.flatnonzero(feat_mask)]
+    selected_features = [list(features[v]) for v in selected_features]
+    return feat_mask, selected_features
 
 
+def compute_uk(feat_mask, s):
+    c = s.shape()[0]
+    if s.ndim() == 5:
+        # s shape is (class, runs, freq, channels, trials)
+        s = np.mean(s, 1)
+    grand_avg = np.mean(s, -1)
+    uk = np.zeros((c, sum(feat_mask)))  # x shape is (class, features)
+    for k in range(c):
+        uk[k, :] = grand_avg[k, :, :].ravel()[np.flatnonzero(feat_mask)]
+    return uk
 
 
-
-
-
-
-
-h1 = loadmat('h1.mat')['h1']
-h2 = loadmat('h2.mat')['h2']
-h3 = loadmat('h3.mat')['h3']
-h4 = loadmat('h4.mat')['h4']
-s1 = loadmat('s1.mat')['s1']
-s2 = loadmat('s2.mat')['s2']
-s3 = loadmat('s3.mat')['s3']
-s4 = loadmat('s4.mat')['s4']
-chan_info = loadmat('chaninfo.mat')['selectedChannelstruct']['selectedChannels']
+n_chan = 13
+h1 = loadmat('h1.mat')['h']
+h2 = loadmat('h2.mat')['h']
+h3 = loadmat('h3.mat')['h']
+h4 = loadmat('h4.mat')['h']
+s1 = loadmat('s1.mat')['s'][:, :n_chan]
+s2 = loadmat('s2.mat')['s'][:, :n_chan]
+s3 = loadmat('s3.mat')['s'][:, :n_chan]
+s4 = loadmat('s4.mat')['s'][:, :n_chan]
 
 fs = h1['SampleRate']
 broad = [4, 30]
@@ -267,7 +299,7 @@ heads = [h1, h2, h3, h4]
 plt.subplot(2, 3, 1)
 i = 1
 fmax = 32
-n_chan = 32
+
 car_filt = CARFilter(n_chan)
 fishers = np.zeros((len(runs), n_chan, int(fmax/2)))
 for S, H in zip(runs, heads):
@@ -291,3 +323,5 @@ plt.title("log(Rank weighted sum)")
 sns.heatmap(np.log10(rank_sum_fisher), xticklabels=xlabels, yticklabels=ylabels)
 plt.show()
 
+mask, feats = select_features(rank_sum_fisher, xlabels, ylabels, 20)
+print("hello world")
