@@ -5,7 +5,7 @@ import numpy as np
 import scipy.io as spio
 import math
 import seaborn as sns
-import itertools
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
 LargeNeighbors = [[2, 4],
                   [5],
@@ -91,7 +91,8 @@ class LaplacianFilter(SpatialFilter):
         self.filter = np.identity(len(self.neighborhood))
         for r in range(len(self.filter)):
             sum_dij = sum(self.distance(h, r, self.neighborhood(r)))
-            self.filter[r, self.neighborhood[r]] = [-1 * dij / sum_dij for dij in self.distance(h, r, self.neighborhood[r])]
+            self.filter[r, self.neighborhood[r]] = [-1 * dij / sum_dij for dij in
+                                                    self.distance(h, r, self.neighborhood[r])]
 
     def distance(self, h, c1, c2):
         return [((h(c).X - h(c1).X) ** 2 + (h(c).Y - h(c1).Y) ** 2 + (h(c).Z - h(c1).Z) ** 2) ** 0.5 for c in c2]
@@ -171,8 +172,8 @@ def loadmat(filename):
 
 def runs2trials_split(ss, hs, dur):
     win = math.floor(dur * hs[0]['SampleRate'])
-    s_L = np.zeros((win, 13, len(ss)*10))
-    s_R = np.zeros((win, 13, len(ss)*10))
+    s_L = np.zeros((win, 13, len(ss) * 10))
+    s_R = np.zeros((win, 13, len(ss) * 10))
     lt = 0
     rt = 0
     for s, h in zip(ss, hs):
@@ -189,7 +190,7 @@ def runs2trials_split(ss, hs, dur):
 
 def runs2trials(ss, hs, dur):
     win = math.floor(dur * hs[0]['SampleRate'])
-    trs = np.zeros((win, 13, len(ss)*20))
+    trs = np.zeros((win, 13, len(ss) * 20))  # trs shape is (samples, channels, trials)
     t = 0
     for s, h in zip(ss, hs):
         triggers = h['EVENT']['TYP']
@@ -200,51 +201,60 @@ def runs2trials(ss, hs, dur):
     return trs
 
 
-def run_psd_fisher(s, h, fmax):
-    max_f_bin = int(fmax/2)
+def run_psd_fisher(s, h, flim, ylab):
+    fmin_bin = int(flim[0] / 2)
+    fmax_bin = int(flim[1] / 2) + 1
     c = np.shape(s)[0]
     n_chan = np.shape(s)[2]
     n_tr = np.shape(s)[3]
-    s_psd = np.zeros((max_f_bin, n_chan, n_tr, c))
+    s_psd = np.zeros((fmax_bin-fmin_bin, n_chan, n_tr, c))
     for j in range(c):
         for tr in range(n_tr):
             for ch in range(n_chan):
-                f, s_psd[:, ch, tr, j] = np.array(signal.periodogram(s[j, :, ch, tr], fs=h['SampleRate'], scaling='density'))[:, :max_f_bin]
+                f, s_psd[:, ch, tr, j] = np.array(
+                    signal.periodogram(s[j, :, ch, tr], fs=h['SampleRate'], scaling='density'))[:, fmin_bin:fmax_bin]
     # s_psd shape is (freq, channels, trials, classes)
     mean_intra = np.mean(s_psd, 2)
     var_intra = np.var(s_psd, 2)
     mean_inter = np.array([np.mean(mean_intra, 2) for t in range(c)])
     mean_inter = np.moveaxis(mean_inter, 0, -1)
-    fisher = np.sum((n_tr*(mean_intra-mean_inter)**2), 2)/np.sum((n_tr*var_intra), 2)
+    fisher = np.sum((n_tr * (mean_intra - mean_inter) ** 2), 2) / np.sum((n_tr * var_intra), 2)
     fisher = np.swapaxes(fisher, 0, 1)
-    ylab = [st.strip() for st in h['Label'][:n_chan]]
     xlab = [int(hz) for hz in f]
     sns.heatmap(fisher, xticklabels=xlab, yticklabels=ylab, vmin=0, vmax=1)
     return fisher
 
 
-def run_psd(s, h, fmax):
-    max_f_bin = int(fmax / 2)
-    # s shape is (time, channels, trials)
+def run_psd(s, h, flim, flat=False):
+    fmin_bin = int(flim[0] / 2)
+    fmax_bin = int(flim[1] / 2) + 1
+    # s shape is (samples, channels, trials)
     n_chan = np.shape(s)[1]
     n_tr = np.shape(s)[2]
-    s_psd = np.zeros((max_f_bin, n_chan, n_tr))
+    s_psd = np.zeros((fmax_bin-fmin_bin, n_chan, n_tr))
     for tr in range(n_tr):
         for ch in range(n_chan):
             f, s_psd[:, ch, tr] = np.array(
-                signal.periodogram(s[:, ch, tr], fs=h['SampleRate'], scaling='density'))[:, :max_f_bin]
+                signal.periodogram(s[:, ch, tr], fs=h['SampleRate'], scaling='density'))[:, fmin_bin:fmax_bin]
     # s_psd shape is (freq, channels, trials)
+    if flat:
+        s_psd_flat = np.zeros((n_tr, n_chan * np.shape(s_psd)[0]))
+        s_psd = np.swapaxes(s_psd, 0, 1)
+        for tr in range(n_tr):
+            s_psd_flat[tr, :] = s_psd[:, :, tr].flatten()
+        return s_psd_flat  # s_psd_flat shape is (trials, channels*freq)
     return s_psd
 
 
-def trial_psd(tr, fs, fmax):
-    max_f_bin = int(fmax / 2)
+def trial_psd(tr, fs, flim):
+    fmin_bin = int(flim[0] / 2)
+    fmax_bin = int(flim[1] / 2) + 1
     # tr shape is (samples, channels)
     n_chan = np.shape(tr)[1]
-    t_psd = np.zeros((max_f_bin, n_chan))
+    t_psd = np.zeros((fmax_bin-fmin_bin, n_chan))
     for ch in range(n_chan):
         f, t_psd[:, ch] = np.array(
-            signal.periodogram(tr[:, ch], fs=fs, scaling='density'))[:, :max_f_bin]
+            signal.periodogram(tr[:, ch], fs=fs, scaling='density'))[:, fmin_bin:fmax_bin]
     # t_psd shape is (freq, channels)
     return t_psd
 
@@ -254,14 +264,14 @@ def rank_avg_fisher(run_fishers):
     for f, fish in enumerate(run_fishers):
         sh = np.shape(fish)
         rank = np.size(fish) - scipy.stats.rankdata(fish, 'min') + 1
-        ranks[f, :, :] = np.reshape(np.ones_like(rank)/rank, sh)
+        ranks[f, :, :] = np.reshape(np.ones_like(rank) / rank, sh)
     return sum(np.multiply(ranks, run_fishers), 0)
 
 
 def select_features(ranked_features, xlabs, ylabs, nfeat):
     sh = np.shape(ranked_features)
-    rank = np.reshape((np.size(ranked_features) - scipy.stats.rankdata(ranked_features, 'min')+1), sh)
-    feat_mask = np.where(rank <= nfeat, 1, 0)
+    rank = np.reshape((np.size(ranked_features) - scipy.stats.rankdata(ranked_features, 'min') + 1), sh)
+    feat_mask = np.where(rank <= nfeat, 1, 0)  # (channels, freq)
     features = np.array([[y, x] for y in ylabs for x in xlabs])
     flatmap = np.array(range(np.shape(features)[0]))
     selected_features = flatmap.ravel()[np.flatnonzero(feat_mask)]
@@ -269,19 +279,23 @@ def select_features(ranked_features, xlabs, ylabs, nfeat):
     return feat_mask, selected_features
 
 
-def compute_uk(feat_mask, s):
-    c = s.shape()[0]
-    if s.ndim() == 5:
-        # s shape is (class, runs, freq, channels, trials)
-        s = np.mean(s, 1)
-    grand_avg = np.mean(s, -1)
-    uk = np.zeros((c, sum(feat_mask)))  # x shape is (class, features)
-    for k in range(c):
-        uk[k, :] = grand_avg[k, :, :].ravel()[np.flatnonzero(feat_mask)]
-    return uk
+def build_training_data(run_psds, hs, mask):
+    r = 0
+    x = np.zeros((np.shape(run_psds[0])[-1] * len(run_psds), 20))
+    y = np.zeros(np.shape(run_psds[0])[-1] * len(run_psds))
+    for i, h in enumerate(hs):
+        s = run_psds[:, :, i]
+        for tr in range(np.shape(s)[0]):
+            x[r, :] = s[tr, :].ravel()[np.flatnonzero(mask)]
+            y[r] = h['Classlabel'][tr]
+            r = r + 1
+    return x, y
 
 
 n_chan = 13
+electrode = "Gel"
+channel_path = "chaninfo_" + electrode
+chaninfo = loadmat(channel_path + '.mat')[channel_path]['channels']
 h1 = loadmat('h1.mat')['h']
 h2 = loadmat('h2.mat')['h']
 h3 = loadmat('h3.mat')['h']
@@ -298,10 +312,13 @@ runs = [s1, s2, s3, s4]
 heads = [h1, h2, h3, h4]
 plt.subplot(2, 3, 1)
 i = 1
-fmax = 32
+n_trials = len(h1['Classlabel'])
+xlabels = [int(x) for x in range(broad[0], broad[1] + 2, 2)]
+ylabels = [chaninfo[c]['labels'] for c, d in enumerate(chaninfo)]
 
+# Feature Selection
 car_filt = CARFilter(n_chan)
-fishers = np.zeros((len(runs), n_chan, int(fmax/2)))
+fishers = np.zeros((len(runs), n_chan, len(xlabels)))
 for S, H in zip(runs, heads):
     S = broad_filt.apply_filter(S)
     s_split = list(runs2trials_split([S], [H], 0.5))
@@ -309,19 +326,35 @@ for S, H in zip(runs, heads):
     plt.subplot(2, 3, i)
     plt.margins(0, 0.1)
     plt.title("Run " + str(i))
-    fishers[i-1, :, :] = run_psd_fisher(s_split_filt, H, fmax)
+    fishers[i - 1, :, :] = run_psd_fisher(s_split_filt, H, broad, ylabels)
     i = i + 1
 
-xlabels = [int(x) for x in range(0, fmax, 2)]
-ylabels = [st.strip() for st in h1['Label'][:n_chan]]
+
 plt.subplot(2, 3, 5)
 plt.title("Rank weighted sum")
 rank_sum_fisher = rank_avg_fisher(fishers)
 sns.heatmap(rank_sum_fisher, xticklabels=xlabels, yticklabels=ylabels)
+
 plt.subplot(2, 3, 6)
 plt.title("log(Rank weighted sum)")
 sns.heatmap(np.log10(rank_sum_fisher), xticklabels=xlabels, yticklabels=ylabels)
 plt.show()
 
-mask, feats = select_features(rank_sum_fisher, xlabels, ylabels, 20)
+mask, feats = select_features(rank_sum_fisher, xlabels, ylabels, n_trials)
+
+# Decoder Training
+r = 0
+unmasked_epochs = np.zeros((n_trials, np.size(mask), len(runs)))
+for S, H in zip(runs, heads):
+    S = broad_filt.apply_filter(S)
+    s = runs2trials([S], [H], 0.5)
+    s = car_filt.apply_filter(s)
+    unmasked_epochs[:, :, r] = run_psd(s, H, broad, flat=True)
+    r = r + 1
+x, y = build_training_data(unmasked_epochs, heads, mask)
+clf = LinearDiscriminantAnalysis()
+clf.fit(x, y)
+
+
+
 print("hello world")

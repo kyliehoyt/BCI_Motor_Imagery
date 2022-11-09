@@ -4,17 +4,20 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="59eb55c6-454f-4ae9-84b1-22a86ce5229f" name="Changes" comment="reorganized spatial filters and attempted feature selector. Next I want to put LDA and fisher stuff into a class, make a generic psd function, covariance matrix generator, cross-validation function, posterior prob calculator">
+    <list default="true" id="59eb55c6-454f-4ae9-84b1-22a86ce5229f" name="Changes" comment="Generic PSD function, mean of features for each class function, matlab function to load a session, our data for subject 4 offline">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Signal Processing.py" beforeDir="false" afterPath="$PROJECT_DIR$/Signal Processing.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/chaninfo.mat" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/h1.mat" beforeDir="false" afterPath="$PROJECT_DIR$/h1.mat" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/h2.mat" beforeDir="false" afterPath="$PROJECT_DIR$/h2.mat" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/h3.mat" beforeDir="false" afterPath="$PROJECT_DIR$/h3.mat" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/h4.mat" beforeDir="false" afterPath="$PROJECT_DIR$/h4.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/load_session.m" beforeDir="false" afterPath="$PROJECT_DIR$/load_session.m" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/s1.mat" beforeDir="false" afterPath="$PROJECT_DIR$/s1.mat" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/s2.mat" beforeDir="false" afterPath="$PROJECT_DIR$/s2.mat" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/s3.mat" beforeDir="false" afterPath="$PROJECT_DIR$/s3.mat" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/s4.mat" beforeDir="false" afterPath="$PROJECT_DIR$/s4.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sopen.mat" beforeDir="false" afterPath="$PROJECT_DIR$/sopen.mat" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -90,7 +93,14 @@
       <option name="project" value="LOCAL" />
       <updated>1666929225764</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="Generic PSD function, mean of features for each class function, matlab function to load a session, our data for subject 4 offline">
+      <created>1667266272322</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1667266272322</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -144,6 +154,23 @@
     <MESSAGE value="psd attempt and homework s, h files" />
     <MESSAGE value="attempted fisher score and rank weighted sum" />
     <MESSAGE value="reorganized spatial filters and attempted feature selector. Next I want to put LDA and fisher stuff into a class, make a generic psd function, covariance matrix generator, cross-validation function, posterior prob calculator" />
-    <option name="LAST_COMMIT_MESSAGE" value="reorganized spatial filters and attempted feature selector. Next I want to put LDA and fisher stuff into a class, make a generic psd function, covariance matrix generator, cross-validation function, posterior prob calculator" />
+    <MESSAGE value="Generic PSD function, mean of features for each class function, matlab function to load a session, our data for subject 4 offline" />
+    <option name="LAST_COMMIT_MESSAGE" value="Generic PSD function, mean of features for each class function, matlab function to load a session, our data for subject 4 offline" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Signal Processing.py</url>
+          <line>359</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Signal Processing.py</url>
+          <line>355</line>
+          <option name="timeStamp" value="13" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

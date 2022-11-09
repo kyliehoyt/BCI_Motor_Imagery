@@ -1,5 +1,5 @@
 addpath('C:\Program Files\MATLAB\R2022b\toolbox\')
-electrode = "Gel";
+electrode = "Dry";
 subject = 4;
 session = 1;
 session_type = "Offline";
