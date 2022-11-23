@@ -292,8 +292,32 @@ def build_training_data(run_psds, hs, mask):
     return x, y
 
 
+def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_truth, thresh):
+    win = math.floor(win*fs)  # seconds -> samples
+    step = win - math.floor(lap*fs)  # seconds -> samples
+    accum_prob = [0.5]
+    alpha = 0.5
+    i = 0
+    while(i+step<len(trial)):  # loop through windows
+        sample = trial[i:i+win]
+        sample = t_filt.apply_filter(sample)
+        sample = sp_filt.apply_filter(sample)
+        sample_psd = trial_psd(sample, fs, flim)
+        sample_feats = sample_psd.ravel()[np.flatnonzero(mask)]
+        prob = clf.predict_proba(sample_feats)[g_truth]  # put in classifier
+        accum_prob.append(alpha*accum_prob[-1] + (1-aplha)*prob)  # accumulate evidence
+        if accum_prob[-1] > thresh[g_truth]:  # compare to correct class threshold
+            return {"probs": accum_prob, "decision": g_truth, "correct": 1}
+        elif accum_prob[-1] < 1-thresh[(g_truth+1) % 2]:  # compare to incorrect class threshold
+            return {"probs": accum_prob, "decision": (g_truth+1) % 2, "correct": 0}
+        i = i+step
+    return {"probs": accum_prob, "decision": nan, "correct": 0}
+
+
 n_chan = 13
 electrode = "Gel"
+
+# Load Data
 channel_path = "chaninfo_" + electrode
 chaninfo = loadmat(channel_path + '.mat')[channel_path]['channels']
 h1 = loadmat('h1.mat')['h']
@@ -310,11 +334,11 @@ broad = [4, 30]
 broad_filt = ButterFilter(2, 'band', fs, broad)
 runs = [s1, s2, s3, s4]
 heads = [h1, h2, h3, h4]
-plt.subplot(2, 3, 1)
-i = 1
 n_trials = len(h1['Classlabel'])
 xlabels = [int(x) for x in range(broad[0], broad[1] + 2, 2)]
 ylabels = [chaninfo[c]['labels'] for c, d in enumerate(chaninfo)]
+plt.subplot(2, 3, 1)
+i = 1
 
 # Feature Selection
 car_filt = CARFilter(n_chan)
@@ -355,6 +379,14 @@ x, y = build_training_data(unmasked_epochs, heads, mask)
 clf = LinearDiscriminantAnalysis()
 clf.fit(x, y)
 
-
+# Online Simulation
+win = 0.1  # 100 ms
+lap = 0.02  # 20 ms
+thresh = [0.7, 0.7]  # left, right or class 0, class 1
+# collect all trials and ground truths
+# For each trial
+decision = simulate_trial(tr, win, lap, fs, broad_filt, car_filt, broad, mask, clf, g_truth, thresh)
+# add accum_prob to plot
+# compute trial performance
 
 print("hello world")
