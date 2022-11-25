@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="59eb55c6-454f-4ae9-84b1-22a86ce5229f" name="Changes" comment="Set up to train LDA classifier with offline data. Offline signal is filtered, rearranged into trials, turned into a PSD, features extracted, and stacked with the class labels. Need to make sure the trial rearrangement is done how we want to">
+    <list default="true" id="59eb55c6-454f-4ae9-84b1-22a86ce5229f" name="Changes" comment="Attempted the online simulation function with window selection, processing, feature extraction, probability calculation, evidence accumulation and threshold comparison">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Signal Processing.py" beforeDir="false" afterPath="$PROJECT_DIR$/Signal Processing.py" afterDir="false" />
     </list>
@@ -96,7 +96,14 @@
       <option name="project" value="LOCAL" />
       <updated>1668023087780</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="Attempted the online simulation function with window selection, processing, feature extraction, probability calculation, evidence accumulation and threshold comparison">
+      <created>1669178427827</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1669178427827</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -157,22 +164,7 @@
     <MESSAGE value="reorganized spatial filters and attempted feature selector. Next I want to put LDA and fisher stuff into a class, make a generic psd function, covariance matrix generator, cross-validation function, posterior prob calculator" />
     <MESSAGE value="Generic PSD function, mean of features for each class function, matlab function to load a session, our data for subject 4 offline" />
     <MESSAGE value="Set up to train LDA classifier with offline data. Offline signal is filtered, rearranged into trials, turned into a PSD, features extracted, and stacked with the class labels. Need to make sure the trial rearrangement is done how we want to" />
-    <option name="LAST_COMMIT_MESSAGE" value="Set up to train LDA classifier with offline data. Offline signal is filtered, rearranged into trials, turned into a PSD, features extracted, and stacked with the class labels. Need to make sure the trial rearrangement is done how we want to" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/Signal Processing.py</url>
-          <line>387</line>
-          <option name="timeStamp" value="1" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/Signal Processing.py</url>
-          <line>382</line>
-          <option name="timeStamp" value="13" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
+    <MESSAGE value="Attempted the online simulation function with window selection, processing, feature extraction, probability calculation, evidence accumulation and threshold comparison" />
+    <option name="LAST_COMMIT_MESSAGE" value="Attempted the online simulation function with window selection, processing, feature extraction, probability calculation, evidence accumulation and threshold comparison" />
   </component>
 </project>

@@ -305,6 +305,7 @@ def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_trut
         sample_psd = trial_psd(sample, fs, flim)
         sample_feats = sample_psd.ravel()[np.flatnonzero(mask)]
         prob = clf.predict_proba(sample_feats)[g_truth]  # put in classifier
+        # Calculate sample sample level performance - Satvik
         accum_prob.append(alpha*accum_prob[-1] + (1-aplha)*prob)  # accumulate evidence
         if accum_prob[-1] > thresh[g_truth]:  # compare to correct class threshold
             return {"probs": accum_prob, "decision": g_truth, "correct": 1}
@@ -316,8 +317,9 @@ def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_trut
 
 n_chan = 13
 electrode = "Gel"
+subject = 4
 
-# Load Data
+# Load Data - Malav
 channel_path = "chaninfo_" + electrode
 chaninfo = loadmat(channel_path + '.mat')[channel_path]['channels']
 h1 = loadmat('h1.mat')['h']
@@ -379,14 +381,21 @@ x, y = build_training_data(unmasked_epochs, heads, mask)
 clf = LinearDiscriminantAnalysis()
 clf.fit(x, y)
 
+
+# Cross Validation - Satvik
+
+
 # Online Simulation
-win = 0.1  # 100 ms
-lap = 0.02  # 20 ms
+win = 1  # 1 s
+lap = 0.1  # 100 ms
 thresh = [0.7, 0.7]  # left, right or class 0, class 1
 # collect all trials and ground truths
 # For each trial
 decision = simulate_trial(tr, win, lap, fs, broad_filt, car_filt, broad, mask, clf, g_truth, thresh)
-# add accum_prob to plot
+# add accum_prob to plot - Kylie
 # compute trial performance
 
+
+# Change the trial extraction to get the entire trial - Kylie
+# Add a causal filter - Kylie
 print("hello world")
