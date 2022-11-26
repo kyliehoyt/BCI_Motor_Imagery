@@ -319,13 +319,92 @@ def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_trut
     return {"probs": accum_prob, "decision": nan, "correct": 0}
 
 
-n_chan = 13
-electrode = "Gel"
-subject = 4
+# File Structure
+# > subject_<id>
+#     > gel
+#        > offline
+#            > session_1
+#                > h1.mat
+#                > s1.mat
+#        > online
+#            > session_1
+#                > h1.mat
+#                > s1.mat
+#            > session_2
+#                > h1.mat
+#                > s1.mat
+#     > dry
+#        > offline
+#            > session_1
+#                > h1.mat
+#                > s1.mat
+#        > online
+#            > session_1
+#                > h1.mat
+#                > s1.mat
+#            > session_2
+#                > h1.mat
+#                > s1.mat
 
-# Load Data - Malav
+# Load Data Parameters
+subject = 4
+electrode = 'gel'
+session_type = 'online'
+session_id = 1
+n_chan = 13
+
+take_inputs = True
+
+# Take parsed inputs
+if take_inputs:
+    print(">>> Leave blank to use default values")
+    inputin = input('subject_id: ')
+    if inputin != '':
+        subject = int(inputin)
+
+    inputin = input('Electrode type: ')
+    if inputin != '':
+        if(inputin[0] == 'g'):
+            electrode = 'gel'
+        if(inputin[0]=='d'):
+            electrode = 'dry'
+
+    inputin = input('Session type: ')
+    if inputin != '':
+        session_type = inputin
+        if(inputin[0] == 'o'):
+            electrode = 'online'
+        elif(inputin[0]=='f'):
+            electrode = 'offline'
+        else:
+            session_type = inputin
+
+    inputin = input('Session id: ')
+    if inputin != '':
+        session_id = int(inputin)
+
+    if(session_id < 1 or session_id > 2):
+        print("Incorrect session_id")
+        exit()
+    if(subject < 3 or subject > 5):
+        print("invalid subject")
+        exit()
+
+file_path = 'subject_' + str(subject) + "/" + electrode + "/" + session_type + "/session_" + str(session_id) + "/"
+
 channel_path = "chaninfo_" + electrode
 chaninfo = loadmat(channel_path + '.mat')[channel_path]['channels']
+
+# Signal data loading based on selected inputs - uncomment once data exists
+# h1 = loadmat(file_path + 'h1.mat')['h']
+# h2 = loadmat(file_path + 'h2.mat')['h']
+# h3 = loadmat(file_path + 'h3.mat')['h']
+# h4 = loadmat(file_path + 'h4.mat')['h']
+# s1 = loadmat(file_path + 's1.mat')['s'][:, :n_chan]
+# s2 = loadmat(file_path + 's2.mat')['s'][:, :n_chan]
+# s3 = loadmat(file_path + 's3.mat')['s'][:, :n_chan]
+# s4 = loadmat(file_path + 's4.mat')['s'][:, :n_chan]
+
 h1 = loadmat('h1.mat')['h']
 h2 = loadmat('h2.mat')['h']
 h3 = loadmat('h3.mat')['h']
