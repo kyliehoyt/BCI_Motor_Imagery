@@ -65,9 +65,13 @@ class ButterFilter(TemporalFilter):
         self.fs = fs
         self.cutoff = cutoff
 
-    def apply_filter(self, raw_sig):
+    def noncausal_filter(self, raw_sig):
         b, a = signal.butter(self.n, self.cutoff, self.btype, fs=self.fs)
         return signal.filtfilt(b, a, raw_sig, axis=0, padtype='odd', padlen=3 * (max(len(b), len(a)) - 1))
+
+    def causal_filter(self, raw_sig):
+        b, a = signal.butter(self.n, self.cutoff, self.btype, fs=self.fs)
+        return signal.lfilter(b, a, raw_sig, axis=0)
 
     def plot_freq_response(self):
         b, a = signal.butter(self.n, self.cutoff, self.btype, fs=self.fs)
@@ -108,12 +112,12 @@ class CARFilter(SpatialFilter):
         self.dim = nchan
         self.filter = -1 / self.dim * np.ones((self.dim, self.dim)) + np.identity(self.dim)
 
-    def apply_filter(self, s):
-        if np.ndim(s) == 2:  # raw data (samples, channels)
+    def apply_filter(self, s, rawflag):
+        if rawflag:  # raw data (samples, channels)
             super().filter_raw_sig(s, self.filter)
-        elif np.ndim(s) == 3:  # trial data (win, channels, trials)
-            for tr in range(np.shape(s)[2]):
-                s[:, :, tr] = np.matmul(s[:, :, tr], self.filter)
+        else:  # trial data (win, channels, trials)
+            for tr in range(np.shape(s)[0]):
+                s[tr] = np.matmul(s[tr], self.filter)
             return s
 
 
@@ -170,49 +174,49 @@ def loadmat(filename):
     return _check_keys(data)
 
 
-def runs2trials_split(ss, hs, dur):
-    win = math.floor(dur * hs[0]['SampleRate'])
-    s_L = np.zeros((win, 13, len(ss) * 10))
-    s_R = np.zeros((win, 13, len(ss) * 10))
+def runs2trials_split(ss, hs):
     lt = 0
     rt = 0
+    s_L = []
+    s_R = []
     for s, h in zip(ss, hs):
-        trigs = h['EVENT']['TYP']
-        l_pos = [h['EVENT']['POS'][i] for i, v in enumerate(trigs) if v == 7692 or v == 7693]
-        r_pos = [h['EVENT']['POS'][i] for i, v in enumerate(trigs) if v == 7702 or v == 7703]
-        for l, r in zip(l_pos, r_pos):
-            s_L[:, :, lt] = s[l - win:l, :]
-            lt = lt + 1
-            s_R[:, :, rt] = s[r - win:r, :]
-            rt = rt + 1
+        for i, t in enumerate(h['EVENT']['TYP']):
+            if t == 1000 and h['EVENT']['TYP'][i+4] in [7692, 7693]:
+                s_L.append(s[h['EVENT']['POS'][i]:h['EVENT']['POS'][i+4], :])
+                lt = lt + 1
+            elif t == 1000 and h['EVENT']['TYP'][i+4] in [7702, 7703]:
+                s_R.append(s[h['EVENT']['POS'][i]:h['EVENT']['POS'][i+4], :])
+                rt = rt + 1
     return s_L, s_R
 
 
-def runs2trials(ss, hs, dur):
-    win = math.floor(dur * hs[0]['SampleRate'])
-    trs = np.zeros((win, 13, len(ss) * 20))  # trs shape is (samples, channels, trials)
-    t = 0
+def runs2trials(ss, hs):
+    trs = []
+    truths = []
     for s, h in zip(ss, hs):
         triggers = h['EVENT']['TYP']
-        pos = [h['EVENT']['POS'][i] for i, v in enumerate(triggers) if v in [7692, 7693, 7702, 7703]]
-        for p in pos:
-            trs[:, :, t] = s[p - win:p, :]
+        starts = [h['EVENT']['POS'][i] for i, v in enumerate(triggers) if v == 1000]
+        ends = [h['EVENT']['POS'][i] for i, v in enumerate(triggers) if v in [7692, 7693, 7702, 7703]]
+        t = 0
+        for st, en in zip(starts, ends):
+            trs.append(s[st:en, :])  # trs shape is (trials, samples, channels)
+            truths.append(h['Classlabel'][t])
             t = t + 1
-    return trs
+    return trs, truths
 
 
 def run_psd_fisher(s, h, flim, ylab):
     fmin_bin = int(flim[0] / 2)
     fmax_bin = int(flim[1] / 2) + 1
     c = np.shape(s)[0]
-    n_chan = np.shape(s)[2]
-    n_tr = np.shape(s)[3]
+    n_chan = 13
+    n_tr = np.shape(s)[1]
     s_psd = np.zeros((fmax_bin-fmin_bin, n_chan, n_tr, c))
     for j in range(c):
         for tr in range(n_tr):
             for ch in range(n_chan):
                 f, s_psd[:, ch, tr, j] = np.array(
-                    signal.periodogram(s[j, :, ch, tr], fs=h['SampleRate'], scaling='density'))[:, fmin_bin:fmax_bin]
+                    signal.periodogram(s[j, tr][:, ch], fs=h['SampleRate'], nfft=256, scaling='density'))[:,fmin_bin:fmax_bin]
     # s_psd shape is (freq, channels, trials, classes)
     mean_intra = np.mean(s_psd, 2)
     var_intra = np.var(s_psd, 2)
@@ -228,14 +232,14 @@ def run_psd_fisher(s, h, flim, ylab):
 def run_psd(s, h, flim, flat=False):
     fmin_bin = int(flim[0] / 2)
     fmax_bin = int(flim[1] / 2) + 1
-    # s shape is (samples, channels, trials)
-    n_chan = np.shape(s)[1]
-    n_tr = np.shape(s)[2]
+    # s shape is (trials, samples, channels)
+    n_chan = np.shape(s[0])[1]
+    n_tr = np.shape(s)[0]
     s_psd = np.zeros((fmax_bin-fmin_bin, n_chan, n_tr))
     for tr in range(n_tr):
         for ch in range(n_chan):
             f, s_psd[:, ch, tr] = np.array(
-                signal.periodogram(s[:, ch, tr], fs=h['SampleRate'], scaling='density'))[:, fmin_bin:fmax_bin]
+                signal.periodogram(s[tr][:, ch], fs=h['SampleRate'], nfft=256, scaling='density'))[:, fmin_bin:fmax_bin]
     # s_psd shape is (freq, channels, trials)
     if flat:
         s_psd_flat = np.zeros((n_tr, n_chan * np.shape(s_psd)[0]))
@@ -254,7 +258,7 @@ def trial_psd(tr, fs, flim):
     t_psd = np.zeros((fmax_bin-fmin_bin, n_chan))
     for ch in range(n_chan):
         f, t_psd[:, ch] = np.array(
-            signal.periodogram(tr[:, ch], fs=fs, scaling='density'))[:, fmin_bin:fmax_bin]
+            signal.periodogram(tr[:, ch], fs=fs, nfft=fs/2, scaling='density'))[:, fmin_bin:fmax_bin]
     # t_psd shape is (freq, channels)
     return t_psd
 
@@ -300,17 +304,17 @@ def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_trut
     i = 0
     while(i+step<len(trial)):  # loop through windows
         sample = trial[i:i+win]
-        sample = t_filt.apply_filter(sample)
-        sample = sp_filt.apply_filter(sample)
+        sample = t_filt.causal_filter(sample)
+        sample = sp_filt.apply_filter(sample, True)
         sample_psd = trial_psd(sample, fs, flim)
         sample_feats = sample_psd.ravel()[np.flatnonzero(mask)]
-        prob = clf.predict_proba(sample_feats)[g_truth]  # put in classifier
+        prob = clf.predict_proba(sample_feats)[g_truth-1]  # put in classifier
         # Calculate sample sample level performance - Satvik
         accum_prob.append(alpha*accum_prob[-1] + (1-aplha)*prob)  # accumulate evidence
-        if accum_prob[-1] > thresh[g_truth]:  # compare to correct class threshold
+        if accum_prob[-1] > thresh[g_truth-1]:  # compare to correct class threshold
             return {"probs": accum_prob, "decision": g_truth, "correct": 1}
-        elif accum_prob[-1] < 1-thresh[(g_truth+1) % 2]:  # compare to incorrect class threshold
-            return {"probs": accum_prob, "decision": (g_truth+1) % 2, "correct": 0}
+        elif accum_prob[-1] < 1-thresh[g_truth % 2]:  # compare to incorrect class threshold
+            return {"probs": accum_prob, "decision": (g_truth % 2)+1, "correct": 0}
         i = i+step
     return {"probs": accum_prob, "decision": nan, "correct": 0}
 
@@ -346,9 +350,9 @@ i = 1
 car_filt = CARFilter(n_chan)
 fishers = np.zeros((len(runs), n_chan, len(xlabels)))
 for S, H in zip(runs, heads):
-    S = broad_filt.apply_filter(S)
-    s_split = list(runs2trials_split([S], [H], 0.5))
-    s_split_filt = np.array([car_filt.apply_filter(s_j) for s_j in s_split])
+    S = broad_filt.noncausal_filter(S)
+    s_split = list(runs2trials_split([S], [H]))
+    s_split_filt = np.array([car_filt.apply_filter(s_j, False) for s_j in s_split])
     plt.subplot(2, 3, i)
     plt.margins(0, 0.1)
     plt.title("Run " + str(i))
@@ -372,9 +376,9 @@ mask, feats = select_features(rank_sum_fisher, xlabels, ylabels, n_trials)
 r = 0
 unmasked_epochs = np.zeros((n_trials, np.size(mask), len(runs)))
 for S, H in zip(runs, heads):
-    S = broad_filt.apply_filter(S)
-    s = runs2trials([S], [H], 0.5)
-    s = car_filt.apply_filter(s)
+    S = broad_filt.noncausal_filter(S)
+    s, truths = runs2trials([S], [H])
+    s = car_filt.apply_filter(s, False)
     unmasked_epochs[:, :, r] = run_psd(s, H, broad, flat=True)
     r = r + 1
 x, y = build_training_data(unmasked_epochs, heads, mask)
@@ -388,10 +392,25 @@ clf.fit(x, y)
 # Online Simulation
 win = 1  # 1 s
 lap = 0.1  # 100 ms
-thresh = [0.7, 0.7]  # left, right or class 0, class 1
+thresh = [0.7, 0.7]  # left, right or class 1, class 2
 # collect all trials and ground truths
 # For each trial
-decision = simulate_trial(tr, win, lap, fs, broad_filt, car_filt, broad, mask, clf, g_truth, thresh)
+online_runs = []
+online_heads = []
+online_trials, online_truths = runs2trials(online_runs, online_heads)
+plt.figure()
+plt.title("Probabilistic Decision Making")
+plt.xlabel("Sample")
+plt.ylabel("Correct Class Probability")
+plt.axhline(0.7)
+plt.axhline(0.3)
+for tr, g_truth in zip(online_trials, online_truths):
+    decision = simulate_trial(tr, win, lap, fs, broad_filt, car_filt, broad, mask, clf, g_truth, thresh)
+    endx = endx + len(decision['accum_probs'])+1
+    xvals = range(startx, endx)
+    plt.scatter(xvals, decision['accum_probs'])
+    plt.axvline(endx+1, linestyle='g')
+    startx = endx + 1
 # add accum_prob to plot - Kylie
 # compute trial performance
 
