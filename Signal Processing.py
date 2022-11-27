@@ -353,6 +353,7 @@ session_type = 'online'
 session_id = 1
 n_chan = 13
 
+#### SET THIS TO FALSE IF YOU WANT TO JUST USE DEFAULT VALUES SET ABOVE #####
 take_inputs = True
 
 # Take parsed inputs
