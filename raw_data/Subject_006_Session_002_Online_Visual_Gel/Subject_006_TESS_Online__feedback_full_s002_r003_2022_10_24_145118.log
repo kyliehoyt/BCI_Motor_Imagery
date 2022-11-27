@@ -1,0 +1,17 @@
+/home/millanslab/Desktop/Leon_ElectrodeTesting_v2/MI/f1_data/Gel_Online/Subject_006_Gel_Online/Subject_006_Session_002_LDA_Online_Visual/Subject_006_TESS_Online__feedback_full_s002_r003_2022_10_24_145118.gdf 
+ExperimentConfigureTime 0.500000
+fixationCrossTime 2.000000
+cueTime 2.000000
+timeout 7.000000
+taskTime 5.000000
+resultTime 1.500000
+restTime 2.000000
+detectionThresholdRH 0.650000
+detectionThresholdLH 0.700000
+nTrials 10.000000
+LH_Threhsold_Hits 6.000000
+RH_Threhsold_Hits 0.000000
+LH_wrongHits 0.000000
+RH_wrongHits 10.000000
+RightHanded 1.000000
+current 15.000000

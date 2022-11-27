@@ -22,7 +22,7 @@ electrodes = ["Dry", "Gel"];
 session_types = ["Online", "Offline"];
 
 
-for subject = 3:5
+for subject = 4:6
     for electrode_id = 1:length(electrodes)
         for session_type_id = 1:length(session_types)
 
@@ -31,7 +31,7 @@ for subject = 3:5
             
             % Save session_1
             session = 1;
-            folder = "Subject_00" + string(subject) + "_Session_00" + string(session) + "_" + session_type + "_Visual_" + electrode;
+            folder = "raw_data/Subject_00" + string(subject) + "_Session_00" + string(session) + "_" + session_type + "_Visual_" + electrode;
             folderpath = pwd + "/" + folder;
             addpath(folderpath);
 
@@ -53,7 +53,7 @@ for subject = 3:5
             if(session_type == "Online")
                 % Save session 2
                 session = 2;
-                folder = "Subject_00" + string(subject) + "_Session_00" + string(session) + "_" + session_type + "_Visual_" + electrode;
+                folder = "raw_data/Subject_00" + string(subject) + "_Session_00" + string(session) + "_" + session_type + "_Visual_" + electrode;
                 folderpath = pwd + "/" + folder;
                 addpath(folderpath);
     

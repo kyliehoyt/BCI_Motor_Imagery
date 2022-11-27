@@ -386,7 +386,7 @@ if take_inputs:
     if(session_id < 1 or session_id > 2):
         print("Incorrect session_id")
         exit()
-    if(subject < 3 or subject > 5):
+    if(subject < 4 or subject > 6):
         print("invalid subject")
         exit()
 
@@ -396,23 +396,23 @@ channel_path = "chaninfo_" + electrode
 chaninfo = loadmat(channel_path + '.mat')[channel_path]['channels']
 
 # Signal data loading based on selected inputs - uncomment once data exists
-# h1 = loadmat(file_path + 'h1.mat')['h']
-# h2 = loadmat(file_path + 'h2.mat')['h']
-# h3 = loadmat(file_path + 'h3.mat')['h']
-# h4 = loadmat(file_path + 'h4.mat')['h']
-# s1 = loadmat(file_path + 's1.mat')['s'][:, :n_chan]
-# s2 = loadmat(file_path + 's2.mat')['s'][:, :n_chan]
-# s3 = loadmat(file_path + 's3.mat')['s'][:, :n_chan]
-# s4 = loadmat(file_path + 's4.mat')['s'][:, :n_chan]
+h1 = loadmat(file_path + 'h1.mat')['h']
+h2 = loadmat(file_path + 'h2.mat')['h']
+h3 = loadmat(file_path + 'h3.mat')['h']
+h4 = loadmat(file_path + 'h4.mat')['h']
+s1 = loadmat(file_path + 's1.mat')['s'][:, :n_chan]
+s2 = loadmat(file_path + 's2.mat')['s'][:, :n_chan]
+s3 = loadmat(file_path + 's3.mat')['s'][:, :n_chan]
+s4 = loadmat(file_path + 's4.mat')['s'][:, :n_chan]
 
-h1 = loadmat('h1.mat')['h']
-h2 = loadmat('h2.mat')['h']
-h3 = loadmat('h3.mat')['h']
-h4 = loadmat('h4.mat')['h']
-s1 = loadmat('s1.mat')['s'][:, :n_chan]
-s2 = loadmat('s2.mat')['s'][:, :n_chan]
-s3 = loadmat('s3.mat')['s'][:, :n_chan]
-s4 = loadmat('s4.mat')['s'][:, :n_chan]
+# h1 = loadmat('h1.mat')['h']
+# h2 = loadmat('h2.mat')['h']
+# h3 = loadmat('h3.mat')['h']
+# h4 = loadmat('h4.mat')['h']
+# s1 = loadmat('s1.mat')['s'][:, :n_chan]
+# s2 = loadmat('s2.mat')['s'][:, :n_chan]
+# s3 = loadmat('s3.mat')['s'][:, :n_chan]
+# s4 = loadmat('s4.mat')['s'][:, :n_chan]
 
 fs = h1['SampleRate']
 broad = [4, 30]
