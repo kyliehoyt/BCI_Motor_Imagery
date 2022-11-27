@@ -6,6 +6,10 @@ import scipy.io as spio
 import math
 import seaborn as sns
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.model_selection import KFold
+from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import cross_val_score
+import os
 
 LargeNeighbors = [[2, 4],
                   [5],
@@ -310,13 +314,33 @@ def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_trut
         sample_feats = sample_psd.ravel()[np.flatnonzero(mask)]
         prob = clf.predict_proba(sample_feats)[g_truth-1]  # put in classifier
         # Calculate sample sample level performance - Satvik
-        accum_prob.append(alpha*accum_prob[-1] + (1-aplha)*prob)  # accumulate evidence
+        accum_prob.append(alpha*accum_prob[-1] + (1-alpha)*prob)  # accumulate evidence
         if accum_prob[-1] > thresh[g_truth-1]:  # compare to correct class threshold
             return {"probs": accum_prob, "decision": g_truth, "correct": 1}
         elif accum_prob[-1] < 1-thresh[g_truth % 2]:  # compare to incorrect class threshold
             return {"probs": accum_prob, "decision": (g_truth % 2)+1, "correct": 0}
         i = i+step
-    return {"probs": accum_prob, "decision": nan, "correct": 0}
+    return {"probs": accum_prob, "decision": float("nan"), "correct": 0}
+
+
+def cross_val(clf, x, y,  folds, gs=False):
+
+    cv = KFold(folds, shuffle=False)
+    cv_results = cross_val_score(clf, x, y, scoring='accuracy', cv=cv)
+    cv_mean = cv_results.mean()
+
+    print("Mean Cross Validation Score Across Folds: ", cv_mean)
+
+    # Hyperparameter Optimization
+
+    if gs:
+        p_grid = {"solver" : ['svd'], "tol" : [0.0001,0.0002,0.0003], "store_covariance" : [True, False]}
+        gs_clf = GridSearchCV(clf, param_grid=p_grid, cv=cv, scoring='accuracy', verbose=2)
+        gs_clf.fit(x, y)
+        clf_params = gs_clf.best_params_
+        return clf_params
+    
+    return -1
 
 
 # File Structure
@@ -348,13 +372,13 @@ def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_trut
 
 # Load Data Parameters
 subject = 4
-electrode = 'gel'
-session_type = 'online'
+electrode = 'Gel'
+session_type = 'offline'
 session_id = 1
 n_chan = 13
 
 #### SET THIS TO FALSE IF YOU WANT TO JUST USE DEFAULT VALUES SET ABOVE #####
-take_inputs = True
+take_inputs = False
 
 # Take parsed inputs
 if take_inputs:
@@ -366,9 +390,9 @@ if take_inputs:
     inputin = input('Electrode type: ')
     if inputin != '':
         if(inputin[0] == 'g'):
-            electrode = 'gel'
+            electrode = 'Gel'
         if(inputin[0]=='d'):
-            electrode = 'dry'
+            electrode = 'Dry'
 
     inputin = input('Session type: ')
     if inputin != '':
@@ -391,9 +415,11 @@ if take_inputs:
         print("invalid subject")
         exit()
 
-file_path = 'subject_' + str(subject) + "/" + electrode + "/" + session_type + "/session_" + str(session_id) + "/"
+file_path = "subject_" + str(subject) + "/" + electrode + "/" + session_type + "/session_" + str(session_id) + "/"
 
-channel_path = "chaninfo_" + electrode
+# os.chdir('/Users/satvik/Desktop/BCI_Motor_Imagery/')
+
+channel_path = 'chaninfo_' + electrode
 chaninfo = loadmat(channel_path + '.mat')[channel_path]['channels']
 
 # Signal data loading based on selected inputs - uncomment once data exists
@@ -468,6 +494,8 @@ clf.fit(x, y)
 
 # Cross Validation - Satvik
 
+params = cross_val(clf, x, y, folds=4, gs=True)
+print(params.values())
 
 # Online Simulation
 win = 1  # 1 s
