@@ -394,16 +394,6 @@ if take_inputs:
         if(inputin[0]=='d'):
             electrode = 'Dry'
 
-    inputin = input('Session type: ')
-    if inputin != '':
-        session_type = inputin
-        if(inputin[0] == 'o'):
-            electrode = 'online'
-        elif(inputin[0]=='f'):
-            electrode = 'offline'
-        else:
-            session_type = inputin
-
     inputin = input('Session id: ')
     if inputin != '':
         session_id = int(inputin)
@@ -426,14 +416,12 @@ chaninfo = loadmat(channel_path + '.mat')[channel_path]['channels']
 h1 = loadmat(file_path + 'h1.mat')['h']
 h2 = loadmat(file_path + 'h2.mat')['h']
 h3 = loadmat(file_path + 'h3.mat')['h']
+h4 = loadmat(file_path + 'h4.mat')['h']
 
 s1 = loadmat(file_path + 's1.mat')['s'][:, :n_chan]
 s2 = loadmat(file_path + 's2.mat')['s'][:, :n_chan]
 s3 = loadmat(file_path + 's3.mat')['s'][:, :n_chan]
-
-if session_type == 'offline':
-    h4 = loadmat(file_path + 'h4.mat')['h']
-    s4 = loadmat(file_path + 's4.mat')['s'][:, :n_chan]
+s4 = loadmat(file_path + 's4.mat')['s'][:, :n_chan]
 
 # h1 = loadmat('h1.mat')['h']
 # h2 = loadmat('h2.mat')['h']
@@ -448,12 +436,8 @@ fs = h1['SampleRate']
 broad = [4, 30]
 broad_filt = ButterFilter(2, 'band', fs, broad)
 
-if session_type == 'offline':
-    runs = [s1, s2, s3, s4]
-    heads = [h1, h2, h3, h4]
-else:
-    runs = [s1, s2, s3]
-    heads = [h1, h2, h3]
+runs = [s1, s2, s3, s4]
+heads = [h1, h2, h3, h4]
 
 n_trials = len(h1['Classlabel'])
 xlabels = [int(x) for x in range(broad[0], broad[1] + 2, 2)]
@@ -511,9 +495,21 @@ win = 1  # 1 s
 lap = 0.1  # 100 ms
 thresh = [0.7, 0.7]  # left, right or class 1, class 2
 # collect all trials and ground truths
+
+session_type = 'online'
+session_id = 1
+file_path = "subject_" + str(subject) + "/" + electrode + "/" + session_type + "/session_" + str(session_id) + "/"
+h1_on = loadmat(file_path + 'h1.mat')['h']
+h2_on = loadmat(file_path + 'h2.mat')['h']
+h3_on = loadmat(file_path + 'h3.mat')['h']
+
+s1_on = loadmat(file_path + 's1.mat')['s'][:, :n_chan]
+s2_on = loadmat(file_path + 's2.mat')['s'][:, :n_chan]
+s3_on = loadmat(file_path + 's3.mat')['s'][:, :n_chan]
+
 # For each trial
-online_runs = []
-online_heads = []
+online_runs = [h1_on, h2_on, h3_on]
+online_heads = [s1_on, s2_on, s3_on]
 online_trials, online_truths = runs2trials(online_runs, online_heads)
 plt.figure()
 plt.title("Probabilistic Decision Making")
