@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="59eb55c6-454f-4ae9-84b1-22a86ce5229f" name="Changes" comment="Attempted the online simulation function with window selection, processing, feature extraction, probability calculation, evidence accumulation and threshold comparison">
+    <list default="true" id="59eb55c6-454f-4ae9-84b1-22a86ce5229f" name="Changes" comment="Added a causal filter option, changed to extract the entire trial, and attempted the accumulated probability plot">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Signal Processing.py" beforeDir="false" afterPath="$PROJECT_DIR$/Signal Processing.py" afterDir="false" />
     </list>
@@ -24,11 +24,11 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "last_opened_file_path": "C:/Users/kylie/Documents/GitHub/BCI_Motor_Imagery/Signal Processing.py"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/kylie/Documents/GitHub/BCI_Motor_Imagery/Signal Processing.py&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager">
     <configuration name="Signal Processing" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
       <module name="BCI_Motor_Imagery" />
@@ -138,7 +138,14 @@
       <option name="project" value="LOCAL" />
       <updated>1669409097822</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="Added a causal filter option, changed to extract the entire trial, and attempted the accumulated probability plot">
+      <created>1669420983115</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1669420983115</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -200,30 +207,31 @@
     <MESSAGE value="Generic PSD function, mean of features for each class function, matlab function to load a session, our data for subject 4 offline" />
     <MESSAGE value="Set up to train LDA classifier with offline data. Offline signal is filtered, rearranged into trials, turned into a PSD, features extracted, and stacked with the class labels. Need to make sure the trial rearrangement is done how we want to" />
     <MESSAGE value="Attempted the online simulation function with window selection, processing, feature extraction, probability calculation, evidence accumulation and threshold comparison" />
-    <option name="LAST_COMMIT_MESSAGE" value="Attempted the online simulation function with window selection, processing, feature extraction, probability calculation, evidence accumulation and threshold comparison" />
+    <MESSAGE value="Added a causal filter option, changed to extract the entire trial, and attempted the accumulated probability plot" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added a causal filter option, changed to extract the entire trial, and attempted the accumulated probability plot" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/Signal Processing.py</url>
-          <line>204</line>
-          <option name="timeStamp" value="10" />
+          <line>514</line>
+          <option name="timeStamp" value="19" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/Signal Processing.py</url>
-          <line>248</line>
-          <option name="timeStamp" value="14" />
+          <line>258</line>
+          <option name="timeStamp" value="20" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/Signal Processing.py</url>
-          <line>384</line>
-          <option name="timeStamp" value="15" />
+          <line>527</line>
+          <option name="timeStamp" value="24" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/Signal Processing.py</url>
-          <line>117</line>
-          <option name="timeStamp" value="18" />
+          <line>483</line>
+          <option name="timeStamp" value="27" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

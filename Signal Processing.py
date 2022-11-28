@@ -118,7 +118,7 @@ class CARFilter(SpatialFilter):
 
     def apply_filter(self, s, rawflag):
         if rawflag:  # raw data (samples, channels)
-            super().filter_raw_sig(s, self.filter)
+            return super().filter_raw_sig(s, self.filter)
         else:  # trial data (win, channels, trials)
             for tr in range(np.shape(s)[0]):
                 s[tr] = np.matmul(s[tr], self.filter)
@@ -258,11 +258,11 @@ def trial_psd(tr, fs, flim):
     fmin_bin = int(flim[0] / 2)
     fmax_bin = int(flim[1] / 2) + 1
     # tr shape is (samples, channels)
-    n_chan = np.shape(tr)[1]
+    n_chan = 13
     t_psd = np.zeros((fmax_bin-fmin_bin, n_chan))
     for ch in range(n_chan):
         f, t_psd[:, ch] = np.array(
-            signal.periodogram(tr[:, ch], fs=fs, nfft=fs/2, scaling='density'))[:, fmin_bin:fmax_bin]
+            signal.periodogram(tr[:, ch], fs=fs, nfft=256, scaling='density'))[:, fmin_bin:fmax_bin]
     # t_psd shape is (freq, channels)
     return t_psd
 
@@ -304,7 +304,7 @@ def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_trut
     win = math.floor(win*fs)  # seconds -> samples
     step = win - math.floor(lap*fs)  # seconds -> samples
     accum_prob = [0.5]
-    alpha = 0.5
+    alpha = 0.9
     i = 0
     while(i+step<len(trial)):  # loop through windows
         sample = trial[i:i+win]
@@ -312,7 +312,7 @@ def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_trut
         sample = sp_filt.apply_filter(sample, True)
         sample_psd = trial_psd(sample, fs, flim)
         sample_feats = sample_psd.ravel()[np.flatnonzero(mask)]
-        prob = clf.predict_proba(sample_feats)[g_truth-1]  # put in classifier
+        prob = clf.predict_proba([sample_feats])[0, g_truth-1]  # put in classifier
         # Calculate sample sample level performance - Satvik
         accum_prob.append(alpha*accum_prob[-1] + (1-alpha)*prob)  # accumulate evidence
         if accum_prob[-1] > thresh[g_truth-1]:  # compare to correct class threshold
@@ -371,7 +371,7 @@ def cross_val(clf, x, y,  folds, gs=False):
 #                > s1.mat
 
 # Load Data Parameters
-subject = 4
+subject = 5
 electrode = 'Gel'
 session_type = 'offline'
 session_id = 1
@@ -490,6 +490,8 @@ clf.fit(x, y)
 params = cross_val(clf, x, y, folds=4, gs=True)
 print(params.values())
 
+
+
 # Online Simulation
 win = 1  # 1 s
 lap = 0.1  # 100 ms
@@ -508,8 +510,8 @@ s2_on = loadmat(file_path + 's2.mat')['s'][:, :n_chan]
 s3_on = loadmat(file_path + 's3.mat')['s'][:, :n_chan]
 
 # For each trial
-online_runs = [h1_on, h2_on, h3_on]
-online_heads = [s1_on, s2_on, s3_on]
+online_runs = [s1_on, s2_on, s3_on]
+online_heads = [h1_on, h2_on, h3_on]
 online_trials, online_truths = runs2trials(online_runs, online_heads)
 plt.figure()
 plt.title("Probabilistic Decision Making")
@@ -517,14 +519,17 @@ plt.xlabel("Sample")
 plt.ylabel("Correct Class Probability")
 plt.axhline(0.7)
 plt.axhline(0.3)
+endx = 0
+startx = 0
 for tr, g_truth in zip(online_trials, online_truths):
     decision = simulate_trial(tr, win, lap, fs, broad_filt, car_filt, broad, mask, clf, g_truth, thresh)
-    endx = endx + len(decision['accum_probs'])+1
+    endx = startx + len(decision['probs'])
     xvals = range(startx, endx)
-    plt.scatter(xvals, decision['accum_probs'])
-    plt.axvline(endx+1, linestyle='g')
+    plt.scatter(xvals, decision['probs'], s=0.7, c='b')
+    plt.axvline(endx, color='g')
     startx = endx + 1
 # add accum_prob to plot - Kylie
+plt.show()
 # compute trial performance
 
 
