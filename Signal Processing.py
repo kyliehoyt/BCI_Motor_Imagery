@@ -426,11 +426,14 @@ chaninfo = loadmat(channel_path + '.mat')[channel_path]['channels']
 h1 = loadmat(file_path + 'h1.mat')['h']
 h2 = loadmat(file_path + 'h2.mat')['h']
 h3 = loadmat(file_path + 'h3.mat')['h']
-h4 = loadmat(file_path + 'h4.mat')['h']
+
 s1 = loadmat(file_path + 's1.mat')['s'][:, :n_chan]
 s2 = loadmat(file_path + 's2.mat')['s'][:, :n_chan]
 s3 = loadmat(file_path + 's3.mat')['s'][:, :n_chan]
-s4 = loadmat(file_path + 's4.mat')['s'][:, :n_chan]
+
+if session_type == 'offline':
+    h4 = loadmat(file_path + 'h4.mat')['h']
+    s4 = loadmat(file_path + 's4.mat')['s'][:, :n_chan]
 
 # h1 = loadmat('h1.mat')['h']
 # h2 = loadmat('h2.mat')['h']
@@ -444,8 +447,14 @@ s4 = loadmat(file_path + 's4.mat')['s'][:, :n_chan]
 fs = h1['SampleRate']
 broad = [4, 30]
 broad_filt = ButterFilter(2, 'band', fs, broad)
-runs = [s1, s2, s3, s4]
-heads = [h1, h2, h3, h4]
+
+if session_type == 'offline':
+    runs = [s1, s2, s3, s4]
+    heads = [h1, h2, h3, h4]
+else:
+    runs = [s1, s2, s3]
+    heads = [h1, h2, h3]
+
 n_trials = len(h1['Classlabel'])
 xlabels = [int(x) for x in range(broad[0], broad[1] + 2, 2)]
 ylabels = [chaninfo[c]['labels'] for c, d in enumerate(chaninfo)]
