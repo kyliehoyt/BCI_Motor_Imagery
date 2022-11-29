@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="59eb55c6-454f-4ae9-84b1-22a86ce5229f" name="Changes" comment="Debugged in class">
+    <list default="true" id="59eb55c6-454f-4ae9-84b1-22a86ce5229f" name="Changes" comment="Meeting">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Signal Processing.py" beforeDir="false" afterPath="$PROJECT_DIR$/Signal Processing.py" afterDir="false" />
     </list>
@@ -152,7 +152,14 @@
       <option name="project" value="LOCAL" />
       <updated>1669675449447</updated>
     </task>
-    <option name="localTasksCounter" value="14" />
+    <task id="LOCAL-00014" summary="Meeting">
+      <created>1669689512433</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1669689512433</updated>
+    </task>
+    <option name="localTasksCounter" value="15" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -216,7 +223,8 @@
     <MESSAGE value="Attempted the online simulation function with window selection, processing, feature extraction, probability calculation, evidence accumulation and threshold comparison" />
     <MESSAGE value="Added a causal filter option, changed to extract the entire trial, and attempted the accumulated probability plot" />
     <MESSAGE value="Debugged in class" />
-    <option name="LAST_COMMIT_MESSAGE" value="Debugged in class" />
+    <MESSAGE value="Meeting" />
+    <option name="LAST_COMMIT_MESSAGE" value="Meeting" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -228,23 +236,28 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/Signal Processing.py</url>
-          <line>258</line>
-          <option name="timeStamp" value="20" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/Signal Processing.py</url>
           <line>532</line>
           <option name="timeStamp" value="24" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/Signal Processing.py</url>
-          <line>490</line>
-          <option name="timeStamp" value="27" />
+          <line>316</line>
+          <option name="timeStamp" value="28" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/Signal Processing.py</url>
-          <line>316</line>
-          <option name="timeStamp" value="28" />
+          <line>483</line>
+          <option name="timeStamp" value="29" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Signal Processing.py</url>
+          <line>247</line>
+          <option name="timeStamp" value="31" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Signal Processing.py</url>
+          <line>489</line>
+          <option name="timeStamp" value="32" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

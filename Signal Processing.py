@@ -250,8 +250,8 @@ def run_psd(s, h, flim, flat=False):
         s_psd = np.swapaxes(s_psd, 0, 1)
         for tr in range(n_tr):
             s_psd_flat[tr, :] = s_psd[:, :, tr].flatten()
-        return s_psd_flat  # s_psd_flat shape is (trials, channels*freq)
-    return s_psd
+        return s_psd_flat  # s_psd_flat shape is (trials, channels*(freq))
+    return np.swapaxes(s_psd, 0, 1)
 
 
 def trial_psd(tr, fs, flim):
@@ -259,11 +259,11 @@ def trial_psd(tr, fs, flim):
     fmax_bin = int(flim[1] / 2) + 1
     # tr shape is (samples, channels)
     n_chan = 13
-    t_psd = np.zeros((fmax_bin-fmin_bin, n_chan))
+    t_psd = np.zeros((n_chan, fmax_bin-fmin_bin))
     for ch in range(n_chan):
-        f, t_psd[:, ch] = np.array(
+        f, t_psd[ch, :] = np.array(
             signal.periodogram(tr[:, ch], fs=fs, nfft=256, scaling='density'))[:, fmin_bin:fmax_bin]
-    # t_psd shape is (freq, channels)
+    # t_psd shape is (channels, freq)
     return t_psd
 
 
@@ -430,14 +430,6 @@ s2 = loadmat(file_path + 's2.mat')['s'][:, :n_chan]
 s3 = loadmat(file_path + 's3.mat')['s'][:, :n_chan]
 s4 = loadmat(file_path + 's4.mat')['s'][:, :n_chan]
 
-# h1 = loadmat('h1.mat')['h']
-# h2 = loadmat('h2.mat')['h']
-# h3 = loadmat('h3.mat')['h']
-# h4 = loadmat('h4.mat')['h']
-# s1 = loadmat('s1.mat')['s'][:, :n_chan]
-# s2 = loadmat('s2.mat')['s'][:, :n_chan]
-# s3 = loadmat('s3.mat')['s'][:, :n_chan]
-# s4 = loadmat('s4.mat')['s'][:, :n_chan]
 
 fs = h1['SampleRate']
 broad = [4, 30]
