@@ -210,22 +210,30 @@ def runs2trials(ss, hs):
     return trs, truths
 
 
-def run_psd_fisher(s, h, flim, ylab):
+def run_psd_fisher(s, h, win, lap, fs, t_filt, sp_filt, flim, ylab):
+    win = math.floor(win * fs)  # seconds -> samples
+    step = win - math.floor(lap * fs)  # seconds -> samples
     fmin_bin = int(flim[0] / 2)
     fmax_bin = int(flim[1] / 2) + 1
     c = np.shape(s)[0]
     n_chan = 13
     n_tr = np.shape(s)[1]
-    s_psd = np.zeros((fmax_bin-fmin_bin, n_chan, n_tr, c))
+    split_psd = np.zeros((c, (fmax_bin-fmin_bin)*n_chan))
     for j in range(c):
         for tr in range(n_tr):
-            for ch in range(n_chan):
-                f, s_psd[:, ch, tr, j] = np.array(
-                    signal.periodogram(s[j, tr][:, ch], fs=h['SampleRate'], nfft=256, scaling='density'))[:,fmin_bin:fmax_bin]
-    # s_psd shape is (freq, channels, trials, classes)
-    mean_intra = np.mean(s_psd, 2)
-    var_intra = np.var(s_psd, 2)
-    mean_inter = np.array([np.mean(mean_intra, 2) for t in range(c)])
+            i = 0
+            trial = s[j, tr]
+            while (i + step < np.shape(trial)[0]):  # loop through windows
+                sample = trial[i:i + win, :]
+                sample = t_filt.causal_filter(sample)
+                sample = sp_filt.apply_filter(sample, True)
+                f, sample_psd = trial_psd(sample, fs, flim, True)
+                split_psd[j] = np.row_stack((split_psd[j], sample_psd))
+                i = i + step
+    # split_psd shape is (classes, freq*n_chan)
+    mean_intra = np.mean(split_psd, 1)
+    var_intra = np.var(split_psd, 1)
+    mean_inter = np.array([np.mean(split_psd, axis=(0, 1)) for t in range(c)])
     mean_inter = np.moveaxis(mean_inter, 0, -1)
     fisher = np.sum((n_tr * (mean_intra - mean_inter) ** 2), 2) / np.sum((n_tr * var_intra), 2)
     fisher = np.swapaxes(fisher, 0, 1)
@@ -255,7 +263,7 @@ def run_psd(s, h, flim, flat=False):
     return np.swapaxes(s_psd, 0, 1)
 
 
-def trial_psd(tr, fs, flim):
+def trial_psd(tr, fs, flim, flat):
     fmin_bin = int(flim[0] / 2)
     fmax_bin = int(flim[1] / 2) + 1
     # tr shape is (samples, channels)
@@ -265,7 +273,10 @@ def trial_psd(tr, fs, flim):
         f, t_psd[ch, :] = np.array(
             signal.periodogram(tr[:, ch], fs=fs, nfft=256, scaling='density'))[:, fmin_bin:fmax_bin]
     # t_psd shape is (channels, freq)
-    return t_psd
+    if flat:
+        t_psd = np.swapaxes(t_psd, 0, 1)
+        return f, t_psd.flatten()  # s_psd_flat shape is (trials, channels*(freq))
+    return f, t_psd
 
 
 def rank_avg_fisher(run_fishers):
@@ -298,9 +309,9 @@ def build_training_data(runs, hs, win, lap, fs, t_filt, sp_filt, flim, mask):
             i = 0
             while (i + step < np.shape(trial)[0]):  # loop through windows
                 sample = trial[i:i + win, :]
-                sample = t_filt.noncausal_filter(sample)
+                sample = t_filt.causal_filter(sample)
                 sample = sp_filt.apply_filter(sample, True)
-                sample_psd = trial_psd(sample, fs, flim)
+                f, sample_psd = trial_psd(sample, fs, flim, False)
                 x = np.row_stack((x, sample_psd.ravel()[np.flatnonzero(mask)]))
                 y.append(h['Classlabel'][tr])
                 i = i + step
@@ -316,9 +327,9 @@ def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_trut
     i = 0
     while(i+step<len(trial)):  # loop through windows
         sample = trial[i:i+win]
-        sample_filt = t_filt.noncausal_filter(sample)
+        sample_filt = t_filt.causal_filter(sample)
         sample_filt = sp_filt.apply_filter(sample_filt, True)
-        sample_psd = trial_psd(sample_filt, fs, flim)
+        f, sample_psd = trial_psd(sample_filt, fs, flim, False)
         sample_feats = np.array(sample_psd.ravel()[np.flatnonzero(mask)]).reshape(1, -1)
         prob_both = clf.predict_proba(sample_feats)  # put in classifier
         print("Probs: ", prob_both)
@@ -385,7 +396,7 @@ def cross_val(clf, x, y,  folds, gs=False):
 
 # Load Data Parameters
 subject = 5
-electrode = 'Poly'
+electrode = 'Gel'
 session_type = 'offline'
 session_id = 1
 n_chan = 13
@@ -461,7 +472,7 @@ for S, H in zip(runs, heads):
     plt.subplot(2, 3, i)
     plt.margins(0, 0.1)
     plt.title("Run " + str(i))
-    fishers[i - 1, :, :] = run_psd_fisher(s_split_filt, H, broad, ylabels)
+    fishers[i - 1, :, :] = run_psd_fisher(s_split_filt, H, 1, 0.1, fs, broad_filt, car_filt, broad, ylabels)
     i = i + 1
 
 
@@ -539,3 +550,4 @@ plt.show()
 # compute trial performance
 
 print("hello world")
+
