@@ -6,6 +6,7 @@ import scipy.io as spio
 import math
 import seaborn as sns
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import cross_val_score
@@ -74,7 +75,7 @@ class ButterFilter(TemporalFilter):
         return signal.filtfilt(b, a, raw_sig, axis=0, padtype='odd', padlen=3 * (max(len(b), len(a)) - 1))
 
     def causal_filter(self, raw_sig):
-        b, a = signal.butter(self.n, self.cutoff, self.btype, fs=self.fs)
+        b, a = signal.butter(self.n*2, self.cutoff, self.btype, fs=self.fs)
         return signal.lfilter(b, a, raw_sig, axis=0)
 
     def plot_freq_response(self):
@@ -287,7 +288,7 @@ def select_features(ranked_features, xlabs, ylabs, nfeat):
     return feat_mask, selected_features
 
 
-def build_training_data(runs, hs, win, lap, fs, flim, mask):
+def build_training_data(runs, hs, win, lap, fs, t_filt, sp_filt, flim, mask):
     win = math.floor(win * fs)  # seconds -> samples
     step = win - math.floor(lap * fs)  # seconds -> samples
     x = np.zeros(np.sum(mask))
@@ -297,6 +298,8 @@ def build_training_data(runs, hs, win, lap, fs, flim, mask):
             i = 0
             while (i + step < np.shape(trial)[0]):  # loop through windows
                 sample = trial[i:i + win, :]
+                sample = t_filt.noncausal_filter(sample)
+                sample = sp_filt.apply_filter(sample, True)
                 sample_psd = trial_psd(sample, fs, flim)
                 x = np.row_stack((x, sample_psd.ravel()[np.flatnonzero(mask)]))
                 y.append(h['Classlabel'][tr])
@@ -308,28 +311,29 @@ def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_trut
     win = math.floor(win*fs)  # seconds -> samples
     step = win - math.floor(lap*fs)  # seconds -> samples
     accum_prob = [0.5]
+    BCI_prob = [0.5]
     alpha = 0.9
     i = 0
     while(i+step<len(trial)):  # loop through windows
         sample = trial[i:i+win]
-        sample = t_filt.causal_filter(sample)
-        sample = sp_filt.apply_filter(sample, True)
-        sample_psd = trial_psd(sample, fs, flim)
-        sample_feats = sample_psd.ravel()[np.flatnonzero(mask)]
-        prob_both = clf.predict_proba([sample_feats])  # put in classifier
+        sample_filt = t_filt.noncausal_filter(sample)
+        sample_filt = sp_filt.apply_filter(sample_filt, True)
+        sample_psd = trial_psd(sample_filt, fs, flim)
+        sample_feats = np.array(sample_psd.ravel()[np.flatnonzero(mask)]).reshape(1, -1)
+        prob_both = clf.predict_proba(sample_feats)  # put in classifier
         print("Probs: ", prob_both)
-        prob = prob_both[0, g_truth-1]
+        BCI_prob.append(prob_both[0, g_truth-1])
         # Calculate sample sample level performance - Satvik
-        accum_prob.append(alpha*accum_prob[-1] + (1-alpha)*prob)  # accumulate evidence
+        accum_prob.append(alpha*accum_prob[-1] + (1-alpha)*BCI_prob[-1])  # accumulate evidence
         if accum_prob[-1] > thresh[g_truth-1]:  # compare to correct class threshold
             print("accum Prob:", accum_prob, "correct: ", g_truth)
-            return {"probs": accum_prob, "decision": g_truth, "correct": 1}
+            return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": g_truth, "correct": 1}
         elif accum_prob[-1] < 1-thresh[g_truth % 2]:  # compare to incorrect class threshold
             print("accum Prob:", accum_prob,"incorrect: ", g_truth)
-            return {"probs": accum_prob, "decision": (g_truth % 2)+1, "correct": 0}
+            return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": (g_truth % 2)+1, "correct": 0}
         i = i+step
     print("accum Prob:", accum_prob, "no decision: ", g_truth)
-    return {"probs": accum_prob, "decision": float("nan"), "correct": 0}
+    return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": float("nan"), "correct": 0}
 
 
 def cross_val(clf, x, y,  folds, gs=False):
@@ -346,6 +350,7 @@ def cross_val(clf, x, y,  folds, gs=False):
         gs_clf = GridSearchCV(clf, param_grid=p_grid, cv=cv, scoring='accuracy', verbose=2)
         gs_clf.fit(x, y)
         clf_params = gs_clf.best_params_
+        # Apply best params to classifier
         return clf_params
     
     return clf
@@ -449,8 +454,8 @@ i = 1
 car_filt = CARFilter(n_chan)
 fishers = np.zeros((len(runs), n_chan, len(xlabels)))
 for S, H in zip(runs, heads):
-    S = broad_filt.noncausal_filter(S)
-    s_split = list(runs2trials_split([S], [H]))
+    s_temp = broad_filt.causal_filter(S)
+    s_split = list(runs2trials_split([s_temp], [H]))
     s_split_filt = np.array([car_filt.apply_filter(s_j, False) for s_j in s_split])
     plt.subplot(2, 3, i)
     plt.margins(0, 0.1)
@@ -469,31 +474,35 @@ plt.title("log(Rank weighted sum)")
 sns.heatmap(np.log10(rank_sum_fisher), xticklabels=xlabels, yticklabels=ylabels)
 plt.show()
 
-mask, feats = select_features(rank_sum_fisher, xlabels, ylabels, n_trials)
+mask, feats = select_features(rank_sum_fisher, xlabels, ylabels, 20)
+print(feats)
 
 # Decoder Training
 r = 0
 unmasked_epochs = []
 for S, H in zip(runs, heads):
-    S = broad_filt.noncausal_filter(S)
+    #S = broad_filt.noncausal_filter(S)
     s, truths = runs2trials([S], [H])
-    s = car_filt.apply_filter(s, False)
+   #s = car_filt.apply_filter(s, False)
     unmasked_epochs.append(s)
     r = r + 1
-x, y = build_training_data(unmasked_epochs, heads, 1, 0.1, fs, broad, mask)
-clf = LinearDiscriminantAnalysis()
+x, y = build_training_data(unmasked_epochs, heads, 1, 0.1, fs, broad_filt, car_filt, broad, mask)
+clf = LinearDiscriminantAnalysis(priors=[0.5, 0.5])
 clf.fit(x, y)
+print(clf.predict_proba(x))
+
+
 
 
 # Cross Validation - Satvik
 
-clf = cross_val(clf, x, y, folds=4, gs=False)
+val = cross_val(clf, x, y, folds=4, gs=False)
 
 
 # Online Simulation
 win = 1  # 1 s
 lap = 0.1  # 100 ms
-thresh = [0.7, 0.7]  # left, right or class 1, class 2
+thresh = [0.6, 0.6]  # left, right or class 1, class 2
 # collect all trials and ground truths
 
 session_type = 'online'
@@ -515,16 +524,17 @@ plt.figure()
 plt.title("Probabilistic Decision Making")
 plt.xlabel("Sample")
 plt.ylabel("Correct Class Probability")
-plt.axhline(0.7)
-plt.axhline(0.3)
+plt.axhline(thresh[0])
+plt.axhline(1-thresh[0])
 endx = 0
 startx = 0
 for tr, g_truth in zip(online_trials, online_truths):
     decision = simulate_trial(tr, win, lap, fs, broad_filt, car_filt, broad, mask, clf, g_truth, thresh)
-    endx = startx + len(decision['probs'])
+    endx = startx + len(decision['accum_probs'])
     xvals = range(startx, endx)
-    plt.scatter(xvals, decision['probs'], s=0.7, c='b')
-    plt.axvline(endx, color='g')
+    plt.scatter(xvals, decision['accum_probs'], s=1, c='b')
+    plt.scatter(xvals, decision['BCI_probs'], s=1, c='r')
+    plt.axvline(endx, linewidth=0.5, color='g')
     startx = endx + 1
 plt.show()
 # compute trial performance
