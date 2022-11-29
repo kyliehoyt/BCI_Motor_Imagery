@@ -385,7 +385,7 @@ def cross_val(clf, x, y,  folds, gs=False):
 
 # Load Data Parameters
 subject = 5
-electrode = 'Gel'
+electrode = 'Dry'
 session_type = 'offline'
 session_id = 1
 n_chan = 13
@@ -444,6 +444,7 @@ broad_filt = ButterFilter(2, 'band', fs, broad)
 runs = [s1, s2, s3, s4]
 heads = [h1, h2, h3, h4]
 
+
 n_trials = len(h1['Classlabel'])
 xlabels = [int(x) for x in range(broad[0], broad[1] + 2, 2)]
 ylabels = [chaninfo[c]['labels'] for c, d in enumerate(chaninfo)]
@@ -478,14 +479,12 @@ mask, feats = select_features(rank_sum_fisher, xlabels, ylabels, 20)
 print(feats)
 
 # Decoder Training
-r = 0
 unmasked_epochs = []
 for S, H in zip(runs, heads):
     #S = broad_filt.noncausal_filter(S)
     s, truths = runs2trials([S], [H])
-   #s = car_filt.apply_filter(s, False)
+    #s = car_filt.apply_filter(s, False)
     unmasked_epochs.append(s)
-    r = r + 1
 x, y = build_training_data(unmasked_epochs, heads, 1, 0.1, fs, broad_filt, car_filt, broad, mask)
 clf = LinearDiscriminantAnalysis(priors=[0.5, 0.5])
 clf.fit(x, y)
