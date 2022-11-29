@@ -370,7 +370,7 @@ def cross_val(clf, x, y,  folds, gs=False):
 #            > session_2
 #                > h1.mat
 #                > s1.mat
-#     > dry
+#     > poly
 #        > offline
 #            > session_1
 #                > h1.mat
@@ -385,7 +385,7 @@ def cross_val(clf, x, y,  folds, gs=False):
 
 # Load Data Parameters
 subject = 5
-electrode = 'Dry'
+electrode = 'Poly'
 session_type = 'offline'
 session_id = 1
 n_chan = 13

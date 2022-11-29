@@ -4,8 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="59eb55c6-454f-4ae9-84b1-22a86ce5229f" name="Changes" comment="It's doing something">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    <list default="true" id="59eb55c6-454f-4ae9-84b1-22a86ce5229f" name="Changes" comment="Renamed dry to poly for something">
       <change beforePath="$PROJECT_DIR$/Signal Processing.py" beforeDir="false" afterPath="$PROJECT_DIR$/Signal Processing.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -180,7 +179,21 @@
       <option name="project" value="LOCAL" />
       <updated>1669700855421</updated>
     </task>
-    <option name="localTasksCounter" value="18" />
+    <task id="LOCAL-00018" summary="It's doing something">
+      <created>1669738127125</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1669738127125</updated>
+    </task>
+    <task id="LOCAL-00019" summary="Renamed dry to poly for something">
+      <created>1669738335986</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1669738335986</updated>
+    </task>
+    <option name="localTasksCounter" value="20" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -248,7 +261,8 @@
     <MESSAGE value="Fixed Mask" />
     <MESSAGE value="Train on Windows" />
     <MESSAGE value="It's doing something" />
-    <option name="LAST_COMMIT_MESSAGE" value="It's doing something" />
+    <MESSAGE value="Renamed dry to poly for something" />
+    <option name="LAST_COMMIT_MESSAGE" value="Renamed dry to poly for something" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
