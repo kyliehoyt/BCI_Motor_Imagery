@@ -312,7 +312,7 @@ def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_trut
     step = win - math.floor(lap*fs)  # seconds -> samples
     accum_prob = [0.5]
     BCI_prob = [0.5]
-    alpha = 0.9
+    alpha = 0.7
     i = 0
     while(i+step<len(trial)):  # loop through windows
         sample = trial[i:i+win]
@@ -321,15 +321,15 @@ def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_trut
         sample_psd = trial_psd(sample_filt, fs, flim)
         sample_feats = np.array(sample_psd.ravel()[np.flatnonzero(mask)]).reshape(1, -1)
         prob_both = clf.predict_proba(sample_feats)  # put in classifier
-        print("Probs: ", prob_both)
+       #print("Probs: ", prob_both)
         BCI_prob.append(prob_both[0, g_truth-1])
         # Calculate sample sample level performance - Satvik
         accum_prob.append(alpha*accum_prob[-1] + (1-alpha)*BCI_prob[-1])  # accumulate evidence
         if accum_prob[-1] > thresh[g_truth-1]:  # compare to correct class threshold
-            print("accum Prob:", accum_prob, "correct: ", g_truth)
+            #print("accum Prob:", accum_prob, "correct: ", g_truth)
             return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": g_truth, "correct": 1}
         elif accum_prob[-1] < 1-thresh[g_truth % 2]:  # compare to incorrect class threshold
-            print("accum Prob:", accum_prob,"incorrect: ", g_truth)
+            #print("accum Prob:", accum_prob,"incorrect: ", g_truth)
             return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": (g_truth % 2)+1, "correct": 0}
         i = i+step
     print("accum Prob:", accum_prob, "no decision: ", g_truth)
@@ -385,7 +385,7 @@ def cross_val(clf, x, y,  folds, gs=False):
 
 # Load Data Parameters
 subject = 5
-electrode = 'Poly'
+electrode = 'Gel'
 session_type = 'offline'
 session_id = 1
 n_chan = 13
@@ -527,6 +527,7 @@ plt.axhline(thresh[0])
 plt.axhline(1-thresh[0])
 endx = 0
 startx = 0
+
 for tr, g_truth in zip(online_trials, online_truths):
     decision = simulate_trial(tr, win, lap, fs, broad_filt, car_filt, broad, mask, clf, g_truth, thresh)
     endx = startx + len(decision['accum_probs'])
@@ -535,6 +536,7 @@ for tr, g_truth in zip(online_trials, online_truths):
     plt.scatter(xvals, decision['BCI_probs'], s=1, c='r')
     plt.axvline(endx, linewidth=0.5, color='g')
     startx = endx + 1
+
 plt.show()
 # compute trial performance
 
