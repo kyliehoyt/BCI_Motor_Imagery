@@ -216,7 +216,7 @@ def run_psd_fisher(s, h, win, lap, fs, t_filt, sp_filt, flim, ylab):
     fmin_bin = int(flim[0] / 2)
     fmax_bin = int(flim[1] / 2) + 1
     c = np.shape(s)[0]
-    n_chan = 13
+    n_chan = 13 #n
     n_tr = np.shape(s)[1]
     split_psd = np.zeros((c, (fmax_bin-fmin_bin)*n_chan))
     for j in range(c):
