@@ -287,17 +287,21 @@ def select_features(ranked_features, xlabs, ylabs, nfeat):
     return feat_mask, selected_features
 
 
-def build_training_data(run_psds, hs, mask):
-    r = 0
-    x = np.zeros((np.shape(run_psds[0])[-1] * len(run_psds), 20))
-    y = np.zeros(np.shape(run_psds[0])[-1] * len(run_psds))
-    for i, h in enumerate(hs):
-        s = run_psds[:, :, i]
-        for tr in range(np.shape(s)[0]):
-            x[r, :] = s[tr, :].ravel()[np.flatnonzero(mask)]
-            y[r] = h['Classlabel'][tr]
-            r = r + 1
-    return x, y
+def build_training_data(runs, hs, win, lap, fs, flim, mask):
+    win = math.floor(win * fs)  # seconds -> samples
+    step = win - math.floor(lap * fs)  # seconds -> samples
+    x = np.zeros(np.sum(mask))
+    y = []
+    for s, h in zip(runs, hs):
+        for tr, trial in enumerate(s):
+            i = 0
+            while (i + step < np.shape(trial)[0]):  # loop through windows
+                sample = trial[i:i + win, :]
+                sample_psd = trial_psd(sample, fs, flim)
+                x = np.row_stack((x, sample_psd.ravel()[np.flatnonzero(mask)]))
+                y.append(h['Classlabel'][tr])
+                i = i + step
+    return x[1:, :], y
 
 
 def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_truth, thresh):
@@ -311,10 +315,7 @@ def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_trut
         sample = t_filt.causal_filter(sample)
         sample = sp_filt.apply_filter(sample, True)
         sample_psd = trial_psd(sample, fs, flim)
-        print(mask)
-        print(sample_psd)
         sample_feats = sample_psd.ravel()[np.flatnonzero(mask)]
-        print(sample_feats)
         prob_both = clf.predict_proba([sample_feats])  # put in classifier
         print("Probs: ", prob_both)
         prob = prob_both[0, g_truth-1]
@@ -472,14 +473,14 @@ mask, feats = select_features(rank_sum_fisher, xlabels, ylabels, n_trials)
 
 # Decoder Training
 r = 0
-unmasked_epochs = np.zeros((n_trials, np.size(mask), len(runs)))
+unmasked_epochs = []
 for S, H in zip(runs, heads):
     S = broad_filt.noncausal_filter(S)
     s, truths = runs2trials([S], [H])
     s = car_filt.apply_filter(s, False)
-    unmasked_epochs[:, :, r] = run_psd(s, H, broad, flat=True)
+    unmasked_epochs.append(s)
     r = r + 1
-x, y = build_training_data(unmasked_epochs, heads, mask)
+x, y = build_training_data(unmasked_epochs, heads, 1, 0.1, fs, broad, mask)
 clf = LinearDiscriminantAnalysis()
 clf.fit(x, y)
 
@@ -525,11 +526,7 @@ for tr, g_truth in zip(online_trials, online_truths):
     plt.scatter(xvals, decision['probs'], s=0.7, c='b')
     plt.axvline(endx, color='g')
     startx = endx + 1
-# add accum_prob to plot - Kylie
 plt.show()
 # compute trial performance
 
-
-# Change the trial extraction to get the entire trial - Kylie
-# Add a causal filter - Kylie
 print("hello world")
