@@ -311,15 +311,23 @@ def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_trut
         sample = t_filt.causal_filter(sample)
         sample = sp_filt.apply_filter(sample, True)
         sample_psd = trial_psd(sample, fs, flim)
+        print(mask)
+        print(sample_psd)
         sample_feats = sample_psd.ravel()[np.flatnonzero(mask)]
-        prob = clf.predict_proba([sample_feats])[0, g_truth-1]  # put in classifier
+        print(sample_feats)
+        prob_both = clf.predict_proba([sample_feats])  # put in classifier
+        print("Probs: ", prob_both)
+        prob = prob_both[0, g_truth-1]
         # Calculate sample sample level performance - Satvik
         accum_prob.append(alpha*accum_prob[-1] + (1-alpha)*prob)  # accumulate evidence
         if accum_prob[-1] > thresh[g_truth-1]:  # compare to correct class threshold
+            print("accum Prob:", accum_prob, "correct: ", g_truth)
             return {"probs": accum_prob, "decision": g_truth, "correct": 1}
         elif accum_prob[-1] < 1-thresh[g_truth % 2]:  # compare to incorrect class threshold
+            print("accum Prob:", accum_prob,"incorrect: ", g_truth)
             return {"probs": accum_prob, "decision": (g_truth % 2)+1, "correct": 0}
         i = i+step
+    print("accum Prob:", accum_prob, "no decision: ", g_truth)
     return {"probs": accum_prob, "decision": float("nan"), "correct": 0}
 
 
@@ -332,15 +340,14 @@ def cross_val(clf, x, y,  folds, gs=False):
     print("Mean Cross Validation Score Across Folds: ", cv_mean)
 
     # Hyperparameter Optimization
-
     if gs:
-        p_grid = {"solver" : ['svd'], "tol" : [0.0001,0.0002,0.0003], "store_covariance" : [True, False]}
+        p_grid = {"solver": ['svd'], "tol": [0.0001, 0.0002, 0.0003], "store_covariance": [True, False]}
         gs_clf = GridSearchCV(clf, param_grid=p_grid, cv=cv, scoring='accuracy', verbose=2)
         gs_clf.fit(x, y)
         clf_params = gs_clf.best_params_
         return clf_params
     
-    return -1
+    return clf
 
 
 # File Structure
@@ -487,9 +494,7 @@ clf.fit(x, y)
 
 # Cross Validation - Satvik
 
-params = cross_val(clf, x, y, folds=4, gs=True)
-print(params.values())
-
+clf = cross_val(clf, x, y, folds=4, gs=False)
 
 
 # Online Simulation

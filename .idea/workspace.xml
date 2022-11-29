@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="59eb55c6-454f-4ae9-84b1-22a86ce5229f" name="Changes" comment="Added a causal filter option, changed to extract the entire trial, and attempted the accumulated probability plot">
+    <list default="true" id="59eb55c6-454f-4ae9-84b1-22a86ce5229f" name="Changes" comment="Debugged in class">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Signal Processing.py" beforeDir="false" afterPath="$PROJECT_DIR$/Signal Processing.py" afterDir="false" />
     </list>
@@ -145,7 +145,14 @@
       <option name="project" value="LOCAL" />
       <updated>1669420983115</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="Debugged in class">
+      <created>1669675449446</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1669675449447</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -208,14 +215,15 @@
     <MESSAGE value="Set up to train LDA classifier with offline data. Offline signal is filtered, rearranged into trials, turned into a PSD, features extracted, and stacked with the class labels. Need to make sure the trial rearrangement is done how we want to" />
     <MESSAGE value="Attempted the online simulation function with window selection, processing, feature extraction, probability calculation, evidence accumulation and threshold comparison" />
     <MESSAGE value="Added a causal filter option, changed to extract the entire trial, and attempted the accumulated probability plot" />
-    <option name="LAST_COMMIT_MESSAGE" value="Added a causal filter option, changed to extract the entire trial, and attempted the accumulated probability plot" />
+    <MESSAGE value="Debugged in class" />
+    <option name="LAST_COMMIT_MESSAGE" value="Debugged in class" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/Signal Processing.py</url>
-          <line>514</line>
+          <line>519</line>
           <option name="timeStamp" value="19" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
@@ -225,13 +233,18 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/Signal Processing.py</url>
-          <line>527</line>
+          <line>532</line>
           <option name="timeStamp" value="24" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/Signal Processing.py</url>
-          <line>483</line>
+          <line>490</line>
           <option name="timeStamp" value="27" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Signal Processing.py</url>
+          <line>316</line>
+          <option name="timeStamp" value="28" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
