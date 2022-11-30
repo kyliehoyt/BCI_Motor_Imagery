@@ -10,7 +10,9 @@ from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from sklearn.model_selection import KFold
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import cross_val_score
+from sklearn.svm import SVC
 import os
+import pandas as pd
 
 LargeNeighbors = [[2, 4],
                   [5],
@@ -187,10 +189,10 @@ def runs2trials_split(ss, hs):
     for s, h in zip(ss, hs):
         for i, t in enumerate(h['EVENT']['TYP']):
             if t == 1000 and h['EVENT']['TYP'][i+4] in [7692, 7693]:
-                s_L.append(s[h['EVENT']['POS'][i]:h['EVENT']['POS'][i+4], :])
+                s_L.append(s[h['EVENT']['POS'][i+2]:h['EVENT']['POS'][i+4], :])
                 lt = lt + 1
             elif t == 1000 and h['EVENT']['TYP'][i+4] in [7702, 7703]:
-                s_R.append(s[h['EVENT']['POS'][i]:h['EVENT']['POS'][i+4], :])
+                s_R.append(s[h['EVENT']['POS'][i+2]:h['EVENT']['POS'][i+4], :])
                 rt = rt + 1
     return s_L, s_R
 
@@ -200,10 +202,11 @@ def runs2trials(ss, hs):
     truths = []
     for s, h in zip(ss, hs):
         triggers = h['EVENT']['TYP']
-        starts = [h['EVENT']['POS'][i] for i, v in enumerate(triggers) if v == 1000]
+        starts = [h['EVENT']['POS'][i] for i, v in enumerate(triggers) if v in [7691, 7701]]
         ends = [h['EVENT']['POS'][i] for i, v in enumerate(triggers) if v in [7692, 7693, 7702, 7703]]
         t = 0
         for st, en in zip(starts, ends):
+            print("Time From Cue to Decision:", ((en-st) / 512))
             trs.append(s[st:en, :])  # trs shape is (trials, samples, channels)
             truths.append(h['Classlabel'][t])
             t = t + 1
@@ -222,12 +225,15 @@ def run_psd_fisher(s, h, win, lap, fs, t_filt, sp_filt, flim, ylab):
     mean_intra = np.zeros((c, (fmax_bin-fmin_bin)*n_chan))
     var_intra = np.zeros((c, (fmax_bin-fmin_bin)*n_chan))
     inter = np.zeros((1, (fmax_bin-fmin_bin)*n_chan))
+    totot = 0
     for j in range(c):
         for tr in range(n_tr):
             i = 0
             trial = s[j, tr]
             winflag = 1
+            wintot = 0
             while winflag:  # loop through windows
+                wintot = wintot + 1
                 if i + step < np.shape(trial)[0]:  # if not the last window
                     sample = trial[i:i + win, :]
                     sample = t_filt.noncausal_filter(sample)
@@ -241,8 +247,12 @@ def run_psd_fisher(s, h, win, lap, fs, t_filt, sp_filt, flim, ylab):
                     sample = sp_filt.apply_filter(sample, True)
                     f, sample_psd = trial_psd(sample, fs, flim, True)
                     split_psd[j] = np.row_stack((split_psd[j], sample_psd))
+                    totot = totot + wintot
+                    print("Total Num of Windows per Trial", wintot)
                     winflag = 0
                 else:  # if last window is shorter than win/4
+                    totot = totot + wintot
+                    print("Total Num of Windows per Trial", wintot)
                     winflag = 0
         split_psd[j] = split_psd[j][1:, :]
         mean_intra[j] = np.mean(split_psd[j], 0)
@@ -257,6 +267,7 @@ def run_psd_fisher(s, h, win, lap, fs, t_filt, sp_filt, flim, ylab):
     fisher = np.reshape(fisher, (n_chan, fmax_bin-fmin_bin))
     xlab = [int(hz) for hz in f]
     sns.heatmap(fisher, xticklabels=xlab, yticklabels=ylab, vmin=0, vmax=1)
+    print("Total Windows", totot)
     return fisher
 
 def run_psd_fisher2(s, h, flim, ylab):
@@ -270,7 +281,9 @@ def run_psd_fisher2(s, h, flim, ylab):
         for tr in range(n_tr):
             for ch in range(n_chan):
                 f, split_psd[:, ch, tr, j] = np.array(
-                    signal.periodogram(s[j, tr][:, ch], fs=h['SampleRate'], nfft=256, scaling='density'))[:,
+                    # signal.periodogram(s[j, tr][:, ch], fs=h['SampleRate'], nfft=256, scaling='density'))[:,
+                    #                   fmin_bin:fmax_bin]
+                    signal.welch(s[j, tr][:, ch], fs=h['SampleRate'], nfft=256, scaling='density'))[:,
                                       fmin_bin:fmax_bin]
     # split_psd shape is (freq, chan, trials, classes)
     mean_intra = np.mean(split_psd, 2)
@@ -294,7 +307,8 @@ def run_psd(s, h, flim, flat=False):
     for tr in range(n_tr):
         for ch in range(n_chan):
             f, s_psd[:, ch, tr] = np.array(
-                signal.periodogram(s[tr][:, ch], fs=h['SampleRate'], nfft=256, scaling='density'))[:, fmin_bin:fmax_bin]
+                # signal.periodogram(s[tr][:, ch], fs=h['SampleRate'], nfft=256, scaling='density'))[:, fmin_bin:fmax_bin]
+                signal.welch(s[tr][:, ch], fs=h['SampleRate'], nfft=256, scaling='density'))[:, fmin_bin:fmax_bin]
     # s_psd shape is (freq, channels, trials)
     if flat:
         s_psd_flat = np.zeros((n_tr, n_chan * np.shape(s_psd)[0]))
@@ -369,7 +383,7 @@ def build_training_data(runs, hs, win, lap, fs, t_filt, sp_filt, flim, mask):
                     winflag = 0
                 else:  # if last window is shorter than win/4
                     winflag = 0
-    return x[1:, :], y
+    return np.array(x[1:, :]), np.array(y)
 
 
 def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_truth, thresh):
@@ -434,7 +448,7 @@ def cross_val(clf, x, y,  folds, gs=False):
     # Hyperparameter Optimization
     if gs:
         p_grid = {"solver": ['svd'], "tol": [0.0001, 0.0002, 0.0003], "store_covariance": [True, False]}
-        gs_clf = GridSearchCV(clf, param_grid=p_grid, cv=cv, scoring='accuracy', verbose=2)
+        gs_clf = GridSearchCV(estimator=clf, param_grid=p_grid, cv=4, scoring='accuracy', verbose=2)
         gs_clf.fit(x, y)
         clf_params = gs_clf.best_params_
         # Apply best params to classifier
@@ -507,7 +521,7 @@ if take_inputs:
 
 file_path = "subject_" + str(subject) + "/" + electrode + "/" + session_type + "/session_" + str(session_id) + "/"
 
-# os.chdir('/Users/satvik/Desktop/BCI_Motor_Imagery/')
+os.chdir('/Users/satvik/Desktop/BCI_Motor_Imagery/')
 
 channel_path = 'chaninfo_' + electrode
 chaninfo = loadmat(channel_path + '.mat')[channel_path]['channels']
@@ -556,7 +570,7 @@ for S, H in zip(runs, heads):
     plt.title("Run " + str(i))
 
     # Feature selection and filtering by windows
-    fishers[i - 1, :, :] = run_psd_fisher(s_split, H, 1, 0.1, fs, broad_filt, car_filt, broad, ylabels)
+    fishers[i - 1, :, :] = run_psd_fisher(s_split, H, 1, 0.9, fs, broad_filt, car_filt, broad, ylabels)
 
     # Feature selection and filtering by trial
     # fishers[i - 1, :, :] = run_psd_fisher2(s_split_filt, H, broad, ylabels)
@@ -589,8 +603,14 @@ for S, H in zip(runs, heads):
     s, truths = runs2trials([S], [H])
 
     unmasked_epochs.append(s)
+
 x, y = build_training_data(unmasked_epochs, heads, 1, 0.1, fs, broad_filt, car_filt, broad, mask)
+print(y.shape)
+print(x.shape)
+df = pd.DataFrame(x)
+print(df)
 clf = LinearDiscriminantAnalysis(priors=[0.5, 0.5])
+# clf = SVC(probability=True)
 clf.fit(x, y)
 print(clf.predict_proba(x))
 
@@ -600,11 +620,12 @@ print(clf.predict_proba(x))
 # Cross Validation - Satvik
 
 val = cross_val(clf, x, y, folds=4, gs=False)
+print(val)
 
 
 # Online Simulation
 win = 1  # 1 s
-lap = 0.1  # 100 ms
+lap = 0.9  # 100 ms
 thresh = [0.6, 0.6]  # left, right or class 1, class 2
 # collect all trials and ground truths
 
