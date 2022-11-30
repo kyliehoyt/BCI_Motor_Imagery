@@ -456,34 +456,6 @@ def cross_val(clf, x, y,  folds, gs=False):
     
     return clf
 
-
-# File Structure
-# > subject_<id>
-#     > gel
-#        > offline
-#            > session_1
-#                > h1.mat
-#                > s1.mat
-#        > online
-#            > session_1
-#                > h1.mat
-#                > s1.mat
-#            > session_2
-#                > h1.mat
-#                > s1.mat
-#     > poly
-#        > offline
-#            > session_1
-#                > h1.mat
-#                > s1.mat
-#        > online
-#            > session_1
-#                > h1.mat
-#                > s1.mat
-#            > session_2
-#                > h1.mat
-#                > s1.mat
-
 # Load Data Parameters
 subject = 4
 electrode = 'Gel'
@@ -500,21 +472,12 @@ if take_inputs:
     inputin = input('subject_id: ')
     if inputin != '':
         subject = int(inputin)
-
     inputin = input('Electrode type: ')
     if inputin != '':
         if(inputin[0] == 'g'):
             electrode = 'Gel'
         if(inputin[0]=='d'):
             electrode = 'Dry'
-
-    inputin = input('Session id: ')
-    if inputin != '':
-        session_id = int(inputin)
-
-    if(session_id < 1 or session_id > 2):
-        print("Incorrect session_id")
-        exit()
     if(subject < 4 or subject > 6):
         print("invalid subject")
         exit()
