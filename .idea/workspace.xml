@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="59eb55c6-454f-4ae9-84b1-22a86ce5229f" name="Changes" comment="Help me">
+    <list default="true" id="59eb55c6-454f-4ae9-84b1-22a86ce5229f" name="Changes" comment="Best I could get it: feature selection and filtering for feature selection is done at the window level (noncausal). Decoder training and filtering of offline data is done at the window level (noncausal). Online filtering is always done at the window level but this uses a noncausal filter (not advised).">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Signal Processing.py" beforeDir="false" afterPath="$PROJECT_DIR$/Signal Processing.py" afterDir="false" />
     </list>
@@ -222,7 +222,14 @@
       <option name="project" value="LOCAL" />
       <updated>1669762975650</updated>
     </task>
-    <option name="localTasksCounter" value="24" />
+    <task id="LOCAL-00024" summary="Best I could get it: feature selection and filtering for feature selection is done at the window level (noncausal). Decoder training and filtering of offline data is done at the window level (noncausal). Online filtering is always done at the window level but this uses a noncausal filter (not advised).">
+      <created>1669780122781</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1669780122781</updated>
+    </task>
+    <option name="localTasksCounter" value="25" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -292,20 +299,26 @@
     <MESSAGE value="It's doing something" />
     <MESSAGE value="Renamed dry to poly for something" />
     <MESSAGE value="Help me" />
-    <option name="LAST_COMMIT_MESSAGE" value="Help me" />
+    <MESSAGE value="Best I could get it: feature selection and filtering for feature selection is done at the window level (noncausal). Decoder training and filtering of offline data is done at the window level (noncausal). Online filtering is always done at the window level but this uses a noncausal filter (not advised)." />
+    <option name="LAST_COMMIT_MESSAGE" value="Best I could get it: feature selection and filtering for feature selection is done at the window level (noncausal). Decoder training and filtering of offline data is done at the window level (noncausal). Online filtering is always done at the window level but this uses a noncausal filter (not advised)." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/Signal Processing.py</url>
-          <line>298</line>
+          <line>310</line>
           <option name="timeStamp" value="31" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/Signal Processing.py</url>
-          <line>612</line>
-          <option name="timeStamp" value="36" />
+          <line>648</line>
+          <option name="timeStamp" value="42" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Signal Processing.py</url>
+          <line>659</line>
+          <option name="timeStamp" value="43" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

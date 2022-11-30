@@ -206,7 +206,7 @@ def runs2trials(ss, hs):
         ends = [h['EVENT']['POS'][i] for i, v in enumerate(triggers) if v in [7692, 7693, 7702, 7703]]
         t = 0
         for st, en in zip(starts, ends):
-            print("Time From Cue to Decision:", ((en-st) / 512))
+            # print("Time From Cue to Decision:", ((en-st) / 512))
             trs.append(s[st:en, :])  # trs shape is (trials, samples, channels)
             truths.append(h['Classlabel'][t])
             t = t + 1
@@ -234,25 +234,25 @@ def run_psd_fisher(s, h, win, lap, fs, t_filt, sp_filt, flim, ylab):
             wintot = 0
             while winflag:  # loop through windows
                 wintot = wintot + 1
-                if i + step < np.shape(trial)[0]:  # if not the last window
+                if i + win < np.shape(trial)[0]:  # if not the last window
                     sample = trial[i:i + win, :]
                     sample = t_filt.noncausal_filter(sample)
                     sample = sp_filt.apply_filter(sample, True)
                     f, sample_psd = trial_psd(sample, fs, flim, True)
                     split_psd[j] = np.row_stack((split_psd[j], sample_psd))
                     i = i + step
-                elif np.shape(trial)[0] - i > win/4:  # if last window is longer than win/4
+                elif np.shape(trial)[0] - i > win/2:  # if last window is longer than win/4
                     sample = trial[i:, :]
                     sample = t_filt.noncausal_filter(sample)
                     sample = sp_filt.apply_filter(sample, True)
                     f, sample_psd = trial_psd(sample, fs, flim, True)
                     split_psd[j] = np.row_stack((split_psd[j], sample_psd))
-                    totot = totot + wintot
-                    print("Total Num of Windows per Trial", wintot)
+                    # totot = totot + wintot
+                    # print("Total Num of Windows per Trial", wintot)
                     winflag = 0
                 else:  # if last window is shorter than win/4
-                    totot = totot + wintot
-                    print("Total Num of Windows per Trial", wintot)
+                    # totot = totot + wintot
+                    # print("Total Num of Windows per Trial", wintot)
                     winflag = 0
         split_psd[j] = split_psd[j][1:, :]
         mean_intra[j] = np.mean(split_psd[j], 0)
@@ -261,13 +261,11 @@ def run_psd_fisher(s, h, win, lap, fs, t_filt, sp_filt, flim, ylab):
     # split_psd shape is (classes, freq*n_chan)
     inter = inter[1:, :]
     mean_inter = np.array([np.mean(inter, 0) for n in range(c)])
-    #mean_inter = np.moveaxis(mean_inter, 0, -1)
     fisher = np.sum((n_tr * (mean_intra - mean_inter) ** 2), 0) / np.sum((n_tr * var_intra), 0)
-    #fisher = np.swapaxes(fisher, 0, 1)
     fisher = np.reshape(fisher, (n_chan, fmax_bin-fmin_bin))
     xlab = [int(hz) for hz in f]
     sns.heatmap(fisher, xticklabels=xlab, yticklabels=ylab, vmin=0, vmax=1)
-    print("Total Windows", totot)
+    # print("Total Windows", totot)
     return fisher
 
 def run_psd_fisher2(s, h, flim, ylab):
@@ -326,8 +324,10 @@ def trial_psd(tr, fs, flim, flat):
     n_chan = 13
     t_psd = np.zeros((n_chan, fmax_bin-fmin_bin))
     for ch in range(n_chan):
+        # f, t_psd[ch, :] = np.array(
+        #     signal.periodogram(tr[:, ch], fs=fs, nfft=256, scaling='density'))[:, fmin_bin:fmax_bin]
         f, t_psd[ch, :] = np.array(
-            signal.periodogram(tr[:, ch], fs=fs, nfft=256, scaling='density'))[:, fmin_bin:fmax_bin]
+            signal.welch(tr[:, ch], fs=fs, nfft=256, scaling='density'))[:, fmin_bin:fmax_bin]
     # t_psd shape is (channels, freq)
     if flat:
         t_psd = np.swapaxes(t_psd, 0, 1)
@@ -365,7 +365,7 @@ def build_training_data(runs, hs, win, lap, fs, t_filt, sp_filt, flim, mask):
             i = 0
             winflag = 1
             while (winflag):  # loop through windows
-                if i + step < np.shape(trial)[0]:  # if not the last window
+                if i + win < np.shape(trial)[0]:  # if not the last window
                     sample = trial[i:i + win, :]
                     sample = t_filt.noncausal_filter(sample)
                     sample = sp_filt.apply_filter(sample, True)
@@ -373,7 +373,7 @@ def build_training_data(runs, hs, win, lap, fs, t_filt, sp_filt, flim, mask):
                     x = np.row_stack((x, sample_psd.ravel()[np.flatnonzero(mask)]))
                     y.append(h['Classlabel'][tr])
                     i = i + step
-                elif np.shape(trial)[0] - i > win/4:  # if last window is longer than win/4
+                elif np.shape(trial)[0] - i > win/2:  # if last window is longer than win/4
                     sample = trial[i:, :]
                     sample = t_filt.noncausal_filter(sample)
                     sample = sp_filt.apply_filter(sample, True)
@@ -391,11 +391,11 @@ def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_trut
     step = win - math.floor(lap*fs)  # seconds -> samples
     accum_prob = [0.5]
     BCI_prob = [0.5]
-    alpha = 0.7
+    alpha = 0.9
     i = 0
     winflag = 1
     while(winflag):  # loop through windows
-        if i + step < len(trial):  # if not last window
+        if i + win < len(trial):  # if not last window
             sample = trial[i:i+win]
             sample_filt = t_filt.noncausal_filter(sample)
             sample_filt = sp_filt.apply_filter(sample_filt, True)
@@ -407,13 +407,13 @@ def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_trut
             # Calculate sample sample level performance - Satvik
             accum_prob.append(alpha*accum_prob[-1] + (1-alpha)*BCI_prob[-1])  # accumulate evidence
             if accum_prob[-1] > thresh[g_truth-1]:  # compare to correct class threshold
-                print("correct: ", g_truth)
+                # print("correct: ", g_truth)
                 return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": g_truth, "correct": 1}
             elif accum_prob[-1] < 1-thresh[g_truth % 2]:  # compare to incorrect class threshold
-                print("incorrect: ", g_truth)
+                # print("incorrect: ", g_truth)
                 return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": (g_truth % 2)+1, "correct": 0}
             i = i+step
-        elif len(trial) - i > win/4:  # if last window is longer than win/4
+        elif len(trial) - i > win/2:  # if last window is longer than win/4
             sample = trial[i:]
             sample_filt = t_filt.noncausal_filter(sample)
             sample_filt = sp_filt.apply_filter(sample_filt, True)
@@ -425,15 +425,15 @@ def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_trut
             # Calculate sample sample level performance - Satvik
             accum_prob.append(alpha * accum_prob[-1] + (1 - alpha) * BCI_prob[-1])  # accumulate evidence
             if accum_prob[-1] > thresh[g_truth - 1]:  # compare to correct class threshold
-                print("correct: ", g_truth)
+                # print("correct: ", g_truth)
                 return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": g_truth, "correct": 1}
             elif accum_prob[-1] < 1 - thresh[g_truth % 2]:  # compare to incorrect class threshold
-                print("incorrect: ", g_truth)
+                # print("incorrect: ", g_truth)
                 return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": (g_truth % 2) + 1, "correct": 0}
             winflag = 0
         else:  # if last window is shorter than win/4
             winflag = 0
-    print("no decision: ", g_truth)
+    # print("no decision: ", g_truth)
     return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": float("nan"), "correct": 0}
 
 
@@ -485,7 +485,7 @@ def cross_val(clf, x, y,  folds, gs=False):
 #                > s1.mat
 
 # Load Data Parameters
-subject = 5
+subject = 4
 electrode = 'Gel'
 session_type = 'offline'
 session_id = 1
@@ -521,7 +521,7 @@ if take_inputs:
 
 file_path = "subject_" + str(subject) + "/" + electrode + "/" + session_type + "/session_" + str(session_id) + "/"
 
-os.chdir('/Users/satvik/Desktop/BCI_Motor_Imagery/')
+#os.chdir('/Users/satvik/Desktop/BCI_Motor_Imagery/')
 
 channel_path = 'chaninfo_' + electrode
 chaninfo = loadmat(channel_path + '.mat')[channel_path]['channels']
@@ -552,6 +552,9 @@ ylabels = [chaninfo[c]['labels'] for c, d in enumerate(chaninfo)]
 plt.subplot(2, 3, 1)
 i = 1
 
+win = 1  # 1 s
+lap = 0.9  # 100 ms
+
 # Feature Selection
 car_filt = CARFilter(n_chan)
 fishers = np.zeros((len(runs), n_chan, len(xlabels)))
@@ -570,7 +573,7 @@ for S, H in zip(runs, heads):
     plt.title("Run " + str(i))
 
     # Feature selection and filtering by windows
-    fishers[i - 1, :, :] = run_psd_fisher(s_split, H, 1, 0.9, fs, broad_filt, car_filt, broad, ylabels)
+    fishers[i - 1, :, :] = run_psd_fisher(s_split, H, win, lap, fs, broad_filt, car_filt, broad, ylabels)
 
     # Feature selection and filtering by trial
     # fishers[i - 1, :, :] = run_psd_fisher2(s_split_filt, H, broad, ylabels)
@@ -604,15 +607,15 @@ for S, H in zip(runs, heads):
 
     unmasked_epochs.append(s)
 
-x, y = build_training_data(unmasked_epochs, heads, 1, 0.1, fs, broad_filt, car_filt, broad, mask)
-print(y.shape)
-print(x.shape)
-df = pd.DataFrame(x)
-print(df)
+x, y = build_training_data(unmasked_epochs, heads, win, lap, fs, broad_filt, car_filt, broad, mask)
+# print(y.shape)
+# print(x.shape)
+# df = pd.DataFrame(x)
+# print(df)
 clf = LinearDiscriminantAnalysis(priors=[0.5, 0.5])
 # clf = SVC(probability=True)
 clf.fit(x, y)
-print(clf.predict_proba(x))
+# print(clf.predict_proba(x))
 
 
 
@@ -620,12 +623,11 @@ print(clf.predict_proba(x))
 # Cross Validation - Satvik
 
 val = cross_val(clf, x, y, folds=4, gs=False)
-print(val)
+# print(val)
 
 
 # Online Simulation
-win = 1  # 1 s
-lap = 0.9  # 100 ms
+
 thresh = [0.6, 0.6]  # left, right or class 1, class 2
 # collect all trials and ground truths
 
@@ -650,11 +652,16 @@ plt.xlabel("Sample")
 plt.ylabel("Correct Class Probability")
 plt.axhline(thresh[0])
 plt.axhline(1-thresh[0])
+plt.axhline(0.5, linewidth=0.5, linestyle='--', color='k')
 endx = 0
 startx = 0
-
+outcomes = {"No Decision": 0, 0: 0, 1: 0}
 for tr, g_truth in zip(online_trials, online_truths):
     decision = simulate_trial(tr, win, lap, fs, broad_filt, car_filt, broad, mask, clf, g_truth, thresh)
+    if math.isnan(decision["decision"]):
+        outcomes["No Decision"] = outcomes["No Decision"] + 1
+    else:
+        outcomes[decision["correct"]] = outcomes[decision["correct"]] + 1
     endx = startx + len(decision['accum_probs'])
     xvals = range(startx, endx)
     plt.scatter(xvals, decision['accum_probs'], s=1, c='b')
@@ -662,8 +669,14 @@ for tr, g_truth in zip(online_trials, online_truths):
     plt.axvline(endx, linewidth=0.5, color='g')
     startx = endx + 1
 
-plt.show()
-# compute trial performance
 
+# compute trial performance
+print("Trials Correct = ", outcomes[1]/sum(outcomes.values()))
+print("Trials Incorrect = ", outcomes[0]/sum(outcomes.values()))
+print("No Decisions = ", outcomes["No Decision"]/sum(outcomes.values()))
 print("hello world")
+plt.show()
+
+
+
 
