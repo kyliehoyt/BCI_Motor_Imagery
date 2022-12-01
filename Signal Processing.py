@@ -16,7 +16,7 @@ import pandas as pd
 import argparse
 import csv
 
-
+# ------------------------------------- Signal Processing Classes/Functions
 class TemporalFilter:
     def __init__(self, n, btype):
         self.n = n
@@ -95,6 +95,7 @@ class CARFilter(SpatialFilter):
             return s
 
 
+# ------------------------------------- Run Formatting Functions
 # load mat function
 def loadmat(filename):
     """
@@ -181,6 +182,7 @@ def runs2trials(ss, hs):
     return trs, truths
 
 
+# ------------------------------------- Feature Selection/Extraction Functions
 def run_psd_fisher_win(s, h, win, lap, fs, t_filt, sp_filt, flim, ylab):
     win = math.floor(win * fs)  # seconds -> samples
     step = win - math.floor(lap * fs)  # seconds -> samples
@@ -330,6 +332,7 @@ def build_training_data(runs, hs, win, lap, fs, t_filt, sp_filt, flim, mask):
     return np.array(x[1:, :]), np.array(y)
 
 
+# ------------------------------------- Feature Classification Functions
 def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_truth, thresh):
     win = math.floor(win*fs)  # seconds -> samples
     step = win - math.floor(lap*fs)  # seconds -> samples
@@ -389,7 +392,6 @@ scripting = False
 #### SET THIS TO FALSE IF YOU WANT TO JUST USE DEFAULT VALUES SET ABOVE #####
 take_inputs = False
 
-
 # If inputs are from argument parser (for scripting)
 parser = argparse.ArgumentParser()
 parser.add_argument('-subject', dest='subject_id', action='store', help="subject id")
@@ -409,54 +411,52 @@ if take_inputs:
         subject = int(inputin)
     inputin = input('Electrode type: ')
     if inputin != '':
-        if(inputin[0] == 'g'):
+        if inputin[0] == 'g':
             electrode = 'Gel'
-        if(inputin[0]=='p'):
+        if inputin[0]=='p':
             electrode = 'Poly'
-    if(subject < 4 or subject > 6):
+    if subject < 4 or subject > 6:
         print("invalid subject")
         exit()
 
 print("Subject: " + str(subject))
-print("Electrode Type: " + str(electrode));
+print("Electrode Type: " + str(electrode))
+
+
+# ------------------------------------- Loading Offline Data
 file_path = "subject_" + str(subject) + "/" + electrode + "/" + session_type + "/session_" + str(session_id) + "/"
-
 #os.chdir('/Users/satvik/Desktop/BCI_Motor_Imagery/')
-
 channel_path = 'chaninfo_' + electrode
-chaninfo = loadmat(channel_path + '.mat')[channel_path]['channels']
 
-# Signal data loading based on selected inputs - uncomment once data exists
+chaninfo = loadmat(channel_path + '.mat')[channel_path]['channels']
 h1 = loadmat(file_path + 'h1.mat')['h']
 h2 = loadmat(file_path + 'h2.mat')['h']
 h3 = loadmat(file_path + 'h3.mat')['h']
 h4 = loadmat(file_path + 'h4.mat')['h']
-
 s1 = loadmat(file_path + 's1.mat')['s'][:, :n_chan]
 s2 = loadmat(file_path + 's2.mat')['s'][:, :n_chan]
 s3 = loadmat(file_path + 's3.mat')['s'][:, :n_chan]
 s4 = loadmat(file_path + 's4.mat')['s'][:, :n_chan]
 
-
-fs = h1['SampleRate']
-broad = [4, 30]
-broad_filt = ButterFilter(2, 'band', fs, broad)
-
 runs = [s1, s2, s3, s4]
 heads = [h1, h2, h3, h4]
 
 
+# ------------------------------------- Global Vars
+fs = h1['SampleRate']
 n_trials = len(h1['Classlabel'])
+broad = [4, 30]
+broad_filt = ButterFilter(2, 'band', fs, broad)
+car_filt = CARFilter(n_chan)
+win = 1  # 1 s
+lap = 0.9  # 900 ms
+
+
+# ------------------------------------- Feature Selection
 xlabels = [int(x) for x in range(broad[0], broad[1] + 2, 2)]
 ylabels = [chaninfo[c]['labels'] for c, d in enumerate(chaninfo)]
 plt.subplot(2, 3, 1)
 i = 1
-
-win = 1  # 1 s
-lap = 0.9  # 900 ms
-
-# ------------------------------------- Feature Selection
-car_filt = CARFilter(n_chan)
 fishers = np.zeros((len(runs), n_chan, len(xlabels)))
 for S, H in zip(runs, heads):
     # Feature selection and filtering by windows
@@ -494,6 +494,7 @@ if not scripting:
 mask, feats = select_features(rank_sum_fisher, xlabels, ylabels, 20)
 print(feats)
 
+
 # ------------------------------------- Decoder Training
 unmasked_epochs = []
 for S, H in zip(runs, heads):
@@ -506,34 +507,28 @@ clf = LinearDiscriminantAnalysis(priors=[0.5, 0.5])
 clf.fit(x, y)
 
 
-
-
-# Cross Validation - Satvik
-
+# ------------------------------------- Cross Validation
 val = cross_val(clf, x, y, folds=4, gs=False)
 # print(val)
 
 
-# Online Simulation
-
-thresh = [0.6, 0.6]  # left, right or class 1, class 2
-# collect all trials and ground truths
-
+# ------------------------------------- Loading Online Data
 session_type = 'online'
 session_id = 1
 file_path = "subject_" + str(subject) + "/" + electrode + "/" + session_type + "/session_" + str(session_id) + "/"
 h1_on = loadmat(file_path + 'h1.mat')['h']
 h2_on = loadmat(file_path + 'h2.mat')['h']
 h3_on = loadmat(file_path + 'h3.mat')['h']
-
 s1_on = loadmat(file_path + 's1.mat')['s'][:, :n_chan]
 s2_on = loadmat(file_path + 's2.mat')['s'][:, :n_chan]
 s3_on = loadmat(file_path + 's3.mat')['s'][:, :n_chan]
-
-# For each trial
 online_runs = [s1_on, s2_on, s3_on]
 online_heads = [h1_on, h2_on, h3_on]
 online_trials, online_truths = runs2trials(online_runs, online_heads)
+
+
+# ------------------------------------- Online Simulation
+thresh = [0.6, 0.6]  # left, right or class 1, class 2
 plt.figure()
 plt.title("Probabilistic Decision Making")
 plt.xlabel("Sample")
@@ -558,7 +553,7 @@ for tr, g_truth in zip(online_trials, online_truths):
     startx = endx + 1
 
 
-# compute trial performance
+# ------------------------------------- Online Trial Level Performance
 trial_correct = outcomes[1]/sum(outcomes.values())
 print("Trials Correct = ", trial_correct)
 trials_incorrect = outcomes[0]/sum(outcomes.values())
@@ -566,7 +561,7 @@ print("Trials Incorrect = ", trials_incorrect)
 no_decision = outcomes["No Decision"]/sum(outcomes.values())
 print("No Decisions = ", no_decision)
 
-# Save to CSV
+# ------------------------------------- Save to CSV
 data = [subject, electrode, trial_correct, trials_incorrect, no_decision]
 with open('subject_results.csv', 'a', encoding='UTF8', newline='') as f:
     writer = csv.writer(f)
