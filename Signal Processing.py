@@ -16,39 +16,6 @@ import pandas as pd
 import argparse
 import csv
 
-LargeNeighbors = [[2, 4],
-                  [5],
-                  [0, 6],
-                  [4],
-                  [0, 2, 5, 14],
-                  [1, 4, 6, 14],
-                  [2, 5, 7, 16],
-                  [6],
-                  [9, 19],
-                  [8, 10, 20],
-                  [9, 11, 21],
-                  [10, 22],
-                  [13, 19],
-                  [3, 12, 14, 23],
-                  [4, 13, 14, 24],
-                  [1, 14, 16, 25],
-                  [6, 15, 17, 26],
-                  [7, 16, 18, 27],
-                  [17, 22],
-                  [8, 20],
-                  [9, 19, 21],
-                  [10, 20, 22],
-                  [11, 21],
-                  [13, 24, 29],
-                  [14, 23, 25, 29],
-                  [15, 24, 26, 30],
-                  [16, 25, 27, 31],
-                  [17, 26, 31],
-                  [24, 26, 29, 31],
-                  [23, 24, 31],
-                  [25],
-                  [26, 27, 29]]
-
 
 class TemporalFilter:
     def __init__(self, n, btype):
@@ -113,8 +80,6 @@ class LaplacianFilter(SpatialFilter):
     def apply_filter(self, s):
         super().filter_raw_sig(s, self.filter)
 
-    # def display filter
-
 
 class CARFilter(SpatialFilter):
     def __init__(self, nchan):
@@ -130,6 +95,7 @@ class CARFilter(SpatialFilter):
             return s
 
 
+# load mat function
 def loadmat(filename):
     """
     this function should be called instead of direct spio.loadmat
@@ -224,51 +190,40 @@ def run_psd_fisher_win(s, h, win, lap, fs, t_filt, sp_filt, flim, ylab):
     n_chan = 13
     n_tr = np.shape(s)[1]
     split_psd = [np.zeros((1, (fmax_bin-fmin_bin)*n_chan)) for n in range(c)]
+    # split_psd shape is (classes)(windows, freq*n_chan)
     mean_intra = np.zeros((c, (fmax_bin-fmin_bin)*n_chan))
     var_intra = np.zeros((c, (fmax_bin-fmin_bin)*n_chan))
     inter = np.zeros((1, (fmax_bin-fmin_bin)*n_chan))
-    totot = 0
     for j in range(c):
         for tr in range(n_tr):
             i = 0
             trial = s[j, tr]
             winflag = 1
-            wintot = 0
             while winflag:  # loop through windows
-                wintot = wintot + 1
                 if i + win < np.shape(trial)[0]:  # if not the last window
                     sample = trial[i:i + win, :]
-                    sample = t_filt.noncausal_filter(sample)
-                    sample = sp_filt.apply_filter(sample, True)
-                    f, sample_psd = trial_psd(sample, fs, flim, True)
-                    split_psd[j] = np.row_stack((split_psd[j], sample_psd))
-                    i = i + step
-                elif np.shape(trial)[0] - i > win/2:  # if last window is longer than win/4
+                elif np.shape(trial)[0] - i > win / 2:  # if last window is longer than win/4
                     sample = trial[i:, :]
-                    sample = t_filt.noncausal_filter(sample)
-                    sample = sp_filt.apply_filter(sample, True)
-                    f, sample_psd = trial_psd(sample, fs, flim, True)
-                    split_psd[j] = np.row_stack((split_psd[j], sample_psd))
-                    # totot = totot + wintot
-                    # print("Total Num of Windows per Trial", wintot)
                     winflag = 0
-                else:  # if last window is shorter than win/4
-                    # totot = totot + wintot
-                    # print("Total Num of Windows per Trial", wintot)
-                    winflag = 0
+                else:  # if last window is shorter than win/2
+                    break
+                sample = t_filt.noncausal_filter(sample)
+                sample = sp_filt.apply_filter(sample, True)
+                f, sample_psd = trial_psd(sample, fs, flim, True)
+                split_psd[j] = np.row_stack((split_psd[j], sample_psd))
+                i = i + step
         split_psd[j] = split_psd[j][1:, :]
         mean_intra[j] = np.mean(split_psd[j], 0)
         var_intra[j] = np.var(split_psd[j], 0)
         inter = np.row_stack((inter, split_psd[j]))
-    # split_psd shape is (classes, freq*n_chan)
     inter = inter[1:, :]
     mean_inter = np.array([np.mean(inter, 0) for n in range(c)])
     fisher = np.sum((n_tr * (mean_intra - mean_inter) ** 2), 0) / np.sum((n_tr * var_intra), 0)
     fisher = np.reshape(fisher, (n_chan, fmax_bin-fmin_bin))
     xlab = [int(hz) for hz in f]
-    sns.heatmap(fisher, xticklabels=xlab, yticklabels=ylab, vmin=0, vmax=1)
-    # print("Total Windows", totot)
+    sns.heatmap(fisher, xticklabels=xlab, yticklabels=ylab, vmin=0, vmax=0.5)
     return fisher
+
 
 def run_psd_fisher_trial(s, h, flim, ylab):
     fmin_bin = int(flim[0] / 2)
@@ -276,16 +231,13 @@ def run_psd_fisher_trial(s, h, flim, ylab):
     c = np.shape(s)[0]
     n_chan = 13
     n_tr = np.shape(s)[1]
-    split_psd = np.zeros((fmax_bin-fmin_bin, n_chan, n_tr, c))
+    split_psd = np.zeros((fmax_bin-fmin_bin, n_chan, n_tr, c))  # split_psd shape is (freq, chan, trials, classes)
     for j in range(c):
         for tr in range(n_tr):
             for ch in range(n_chan):
                 f, split_psd[:, ch, tr, j] = np.array(
-                    # signal.periodogram(s[j, tr][:, ch], fs=h['SampleRate'], nfft=256, scaling='density'))[:,
-                    #                   fmin_bin:fmax_bin]
                     signal.welch(s[j, tr][:, ch], fs=h['SampleRate'], nfft=256, scaling='density'))[:,
                                       fmin_bin:fmax_bin]
-    # split_psd shape is (freq, chan, trials, classes)
     mean_intra = np.mean(split_psd, 2)
     var_intra = np.var(split_psd, 2)
     mean_inter = np.array([np.mean(mean_intra, 2) for n in range(c)])
@@ -298,39 +250,34 @@ def run_psd_fisher_trial(s, h, flim, ylab):
 
 
 def run_psd(s, h, flim, flat=False):
+    # s shape is (trials, samples, channels)
     fmin_bin = int(flim[0] / 2)
     fmax_bin = int(flim[1] / 2) + 1
-    # s shape is (trials, samples, channels)
     n_chan = np.shape(s[0])[1]
     n_tr = np.shape(s)[0]
-    s_psd = np.zeros((fmax_bin-fmin_bin, n_chan, n_tr))
+    s_psd = np.zeros((fmax_bin-fmin_bin, n_chan, n_tr))  # s_psd shape is (freq, channels, trials)
     for tr in range(n_tr):
         for ch in range(n_chan):
             f, s_psd[:, ch, tr] = np.array(
-                # signal.periodogram(s[tr][:, ch], fs=h['SampleRate'], nfft=256, scaling='density'))[:, fmin_bin:fmax_bin]
                 signal.welch(s[tr][:, ch], fs=h['SampleRate'], nfft=256, scaling='density'))[:, fmin_bin:fmax_bin]
-    # s_psd shape is (freq, channels, trials)
     if flat:
-        s_psd_flat = np.zeros((n_tr, n_chan * np.shape(s_psd)[0]))
+        s_psd_flat = np.zeros((n_tr, n_chan * np.shape(s_psd)[0]))  # s_psd_flat shape is (trials, channels*(freq))
         s_psd = np.swapaxes(s_psd, 0, 1)
         for tr in range(n_tr):
             s_psd_flat[tr, :] = s_psd[:, :, tr].flatten()
-        return s_psd_flat  # s_psd_flat shape is (trials, channels*(freq))
+        return s_psd_flat
     return np.swapaxes(s_psd, 0, 1)
 
 
 def trial_psd(tr, fs, flim, flat):
+    # tr shape is (samples, channels)
     fmin_bin = int(flim[0] / 2)
     fmax_bin = int(flim[1] / 2) + 1
-    # tr shape is (samples, channels)
     n_chan = 13
-    t_psd = np.zeros((n_chan, fmax_bin-fmin_bin))
+    t_psd = np.zeros((n_chan, fmax_bin-fmin_bin))  # t_psd shape is (channels, freq)
     for ch in range(n_chan):
-        # f, t_psd[ch, :] = np.array(
-        #     signal.periodogram(tr[:, ch], fs=fs, nfft=256, scaling='density'))[:, fmin_bin:fmax_bin]
         f, t_psd[ch, :] = np.array(
             signal.welch(tr[:, ch], fs=fs, nfft=256, scaling='density'))[:, fmin_bin:fmax_bin]
-    # t_psd shape is (channels, freq)
     if flat:
         t_psd = np.swapaxes(t_psd, 0, 1)
         return f, t_psd.flatten()  # t_psd_flat shape is (channels*(freq))
@@ -357,7 +304,7 @@ def select_features(ranked_features, xlabs, ylabs, nfeat):
     return feat_mask, selected_features
 
 
-def build_training_data_win(runs, hs, win, lap, fs, t_filt, sp_filt, flim, mask):
+def build_training_data(runs, hs, win, lap, fs, t_filt, sp_filt, flim, mask):
     win = math.floor(win * fs)  # seconds -> samples
     step = win - math.floor(lap * fs)  # seconds -> samples
     x = np.zeros(np.sum(mask))
@@ -369,54 +316,19 @@ def build_training_data_win(runs, hs, win, lap, fs, t_filt, sp_filt, flim, mask)
             while (winflag):  # loop through windows
                 if i + win < np.shape(trial)[0]:  # if not the last window
                     sample = trial[i:i + win, :]
-                    sample = t_filt.noncausal_filter(sample)
-                    sample = sp_filt.apply_filter(sample, True)
-                    f, sample_psd = trial_psd(sample, fs, flim, False)
-                    x = np.row_stack((x, sample_psd.ravel()[np.flatnonzero(mask)]))
-                    y.append(h['Classlabel'][tr])
-                    i = i + step
-                elif np.shape(trial)[0] - i > win/2:  # if last window is longer than win/4
+                elif np.shape(trial)[0] - i > win / 2:  # if last window is longer than win/2
                     sample = trial[i:, :]
-                    sample = t_filt.noncausal_filter(sample)
-                    sample = sp_filt.apply_filter(sample, True)
-                    f, sample_psd = trial_psd(sample, fs, flim, False)
-                    x = np.row_stack((x, sample_psd.ravel()[np.flatnonzero(mask)]))
-                    y.append(h['Classlabel'][tr])
                     winflag = 0
-                else:  # if last window is shorter than win/4
-                    winflag = 0
+                else:  # if last window is shorter than win/2
+                    break
+                sample = t_filt.noncausal_filter(sample)
+                sample = sp_filt.apply_filter(sample, True)
+                f, sample_psd = trial_psd(sample, fs, flim, False)
+                x = np.row_stack((x, sample_psd.ravel()[np.flatnonzero(mask)]))
+                y.append(h['Classlabel'][tr])
+                i = i + step
     return np.array(x[1:, :]), np.array(y)
 
-
-def build_training_data_trial(runs, hs, win, lap, fs, t_filt, sp_filt, flim, mask):
-    win = math.floor(win * fs)  # seconds -> samples
-    step = win - math.floor(lap * fs)  # seconds -> samples
-    x = np.zeros(np.sum(mask))
-    y = []
-    for s, h in zip(runs, hs):
-        for tr, trial in enumerate(s):
-            i = 0
-            winflag = 1
-            while (winflag):  # loop through windows
-                if i + win < np.shape(trial)[0]:  # if not the last window
-                    sample = trial[i:i + win, :]
-                    sample = t_filt.noncausal_filter(sample)
-                    sample = sp_filt.apply_filter(sample, True)
-                    f, sample_psd = trial_psd(sample, fs, flim, False)
-                    x = np.row_stack((x, sample_psd.ravel()[np.flatnonzero(mask)]))
-                    y.append(h['Classlabel'][tr])
-                    i = i + step
-                elif np.shape(trial)[0] - i > win/2:  # if last window is longer than win/4
-                    sample = trial[i:, :]
-                    sample = t_filt.noncausal_filter(sample)
-                    sample = sp_filt.apply_filter(sample, True)
-                    f, sample_psd = trial_psd(sample, fs, flim, False)
-                    x = np.row_stack((x, sample_psd.ravel()[np.flatnonzero(mask)]))
-                    y.append(h['Classlabel'][tr])
-                    winflag = 0
-                else:  # if last window is shorter than win/4
-                    winflag = 0
-    return np.array(x[1:, :]), np.array(y)
 
 def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_truth, thresh):
     win = math.floor(win*fs)  # seconds -> samples
@@ -426,55 +338,33 @@ def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_trut
     alpha = 0.9
     i = 0
     winflag = 1
-    while(winflag):  # loop through windows
+    while winflag:  # loop through windows
         if i + win < len(trial):  # if not last window
             sample = trial[i:i+win]
-            sample_filt = t_filt.noncausal_filter(sample)
-            sample_filt = sp_filt.apply_filter(sample_filt, True)
-            f, sample_psd = trial_psd(sample_filt, fs, flim, False)
-            sample_feats = np.array(sample_psd.ravel()[np.flatnonzero(mask)]).reshape(1, -1)
-            prob_both = clf.predict_proba(sample_feats)  # put in classifier
-           #print("Probs: ", prob_both)
-            BCI_prob.append(prob_both[0, g_truth-1])
-            # Calculate sample sample level performance - Satvik
-            accum_prob.append(alpha*accum_prob[-1] + (1-alpha)*BCI_prob[-1])  # accumulate evidence
-            if accum_prob[-1] > thresh[g_truth-1]:  # compare to correct class threshold
-                # print("correct: ", g_truth)
-                return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": g_truth, "correct": 1}
-            elif accum_prob[-1] < 1-thresh[g_truth % 2]:  # compare to incorrect class threshold
-                # print("incorrect: ", g_truth)
-                return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": (g_truth % 2)+1, "correct": 0}
-            i = i+step
-        elif len(trial) - i > win/2:  # if last window is longer than win/4
+        elif len(trial) - i > win / 2:  # if last window is longer than win/2
             sample = trial[i:]
-            sample_filt = t_filt.noncausal_filter(sample)
-            sample_filt = sp_filt.apply_filter(sample_filt, True)
-            f, sample_psd = trial_psd(sample_filt, fs, flim, False)
-            sample_feats = np.array(sample_psd.ravel()[np.flatnonzero(mask)]).reshape(1, -1)
-            prob_both = clf.predict_proba(sample_feats)  # put in classifier
-            # print("Probs: ", prob_both)
-            BCI_prob.append(prob_both[0, g_truth - 1])
-            # Calculate sample sample level performance - Satvik
-            accum_prob.append(alpha * accum_prob[-1] + (1 - alpha) * BCI_prob[-1])  # accumulate evidence
-            if accum_prob[-1] > thresh[g_truth - 1]:  # compare to correct class threshold
-                # print("correct: ", g_truth)
-                return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": g_truth, "correct": 1}
-            elif accum_prob[-1] < 1 - thresh[g_truth % 2]:  # compare to incorrect class threshold
-                # print("incorrect: ", g_truth)
-                return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": (g_truth % 2) + 1, "correct": 0}
             winflag = 0
         else:  # if last window is shorter than win/2
-            winflag = 0
-    # print("no decision: ", g_truth)
+            break
+        sample_filt = t_filt.noncausal_filter(sample)
+        sample_filt = sp_filt.apply_filter(sample_filt, True)
+        f, sample_psd = trial_psd(sample_filt, fs, flim, False)
+        sample_feats = np.array(sample_psd.ravel()[np.flatnonzero(mask)]).reshape(1, -1)
+        BCI_prob.append(clf.predict_proba(sample_feats)[0, g_truth-1])
+        # Calculate sample sample level performance - Satvik
+        accum_prob.append(alpha*accum_prob[-1] + (1-alpha)*BCI_prob[-1])  # accumulate evidence
+        if accum_prob[-1] > thresh[g_truth-1]:  # compare to correct class threshold
+            return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": g_truth, "correct": 1}
+        elif accum_prob[-1] < 1-thresh[g_truth % 2]:  # compare to incorrect class threshold
+            return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": (g_truth % 2)+1, "correct": 0}
+        i = i+step
     return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": float("nan"), "correct": 0}
 
 
 def cross_val(clf, x, y,  folds, gs=False):
-
     cv = KFold(folds, shuffle=False)
     cv_results = cross_val_score(clf, x, y, scoring='accuracy', cv=cv)
     cv_mean = cv_results.mean()
-
     print("Mean Cross Validation Score Across Folds: ", cv_mean)
 
     # Hyperparameter Optimization
@@ -485,12 +375,10 @@ def cross_val(clf, x, y,  folds, gs=False):
         clf_params = gs_clf.best_params_
         # Apply best params to classifier
         return clf_params
-    
     return clf
 
 
-
-# Load Data Parameters
+# ------------------------------------- Loading Data Parameters
 subject = 4
 electrode = 'Gel'
 session_type = 'offline'
@@ -567,7 +455,7 @@ i = 1
 win = 1  # 1 s
 lap = 0.9  # 900 ms
 
-# Feature Selection
+# ------------------------------------- Feature Selection
 car_filt = CARFilter(n_chan)
 fishers = np.zeros((len(runs), n_chan, len(xlabels)))
 for S, H in zip(runs, heads):
@@ -606,29 +494,16 @@ if not scripting:
 mask, feats = select_features(rank_sum_fisher, xlabels, ylabels, 20)
 print(feats)
 
-# Decoder Training
+# ------------------------------------- Decoder Training
 unmasked_epochs = []
 for S, H in zip(runs, heads):
-    # Filter by trial
-    # S = broad_filt.noncausal_filter(S)
-    # s, truths = runs2trials([S], [H])
-    # s = car_filt.apply_filter(s, False)
-
-    # Filter by window
-    # uncomment filtering lines in build_training_data
     s, truths = runs2trials([S], [H])
-
     unmasked_epochs.append(s)
 
-x, y = build_training_data_win(unmasked_epochs, heads, win, lap, fs, broad_filt, car_filt, broad, mask)
-# print(y.shape)
-# print(x.shape)
-# df = pd.DataFrame(x)
-# print(df)
+x, y = build_training_data(unmasked_epochs, heads, win, lap, fs, broad_filt, car_filt, broad, mask)
 clf = LinearDiscriminantAnalysis(priors=[0.5, 0.5])
 # clf = SVC(probability=True)
 clf.fit(x, y)
-# print(clf.predict_proba(x))
 
 
 

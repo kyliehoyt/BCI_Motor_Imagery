@@ -4,9 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="59eb55c6-454f-4ae9-84b1-22a86ce5229f" name="Changes" comment="Fixed last window thing and output trial accuracy">
+    <list default="true" id="59eb55c6-454f-4ae9-84b1-22a86ce5229f" name="Changes" comment="during meeting">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Signal Processing.py" beforeDir="false" afterPath="$PROJECT_DIR$/Signal Processing.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/subject_results.csv" beforeDir="false" afterPath="$PROJECT_DIR$/subject_results.csv" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -236,7 +237,14 @@
       <option name="project" value="LOCAL" />
       <updated>1669830456896</updated>
     </task>
-    <option name="localTasksCounter" value="26" />
+    <task id="LOCAL-00026" summary="during meeting">
+      <created>1669859459126</created>
+      <option name="number" value="00026" />
+      <option name="presentableId" value="LOCAL-00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1669859459126</updated>
+    </task>
+    <option name="localTasksCounter" value="27" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -308,24 +316,20 @@
     <MESSAGE value="Help me" />
     <MESSAGE value="Best I could get it: feature selection and filtering for feature selection is done at the window level (noncausal). Decoder training and filtering of offline data is done at the window level (noncausal). Online filtering is always done at the window level but this uses a noncausal filter (not advised)." />
     <MESSAGE value="Fixed last window thing and output trial accuracy" />
-    <option name="LAST_COMMIT_MESSAGE" value="Fixed last window thing and output trial accuracy" />
+    <MESSAGE value="during meeting" />
+    <option name="LAST_COMMIT_MESSAGE" value="during meeting" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/Signal Processing.py</url>
-          <line>310</line>
-          <option name="timeStamp" value="31" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/Signal Processing.py</url>
-          <line>678</line>
+          <line>537</line>
           <option name="timeStamp" value="42" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/Signal Processing.py</url>
-          <line>689</line>
+          <line>548</line>
           <option name="timeStamp" value="43" />
         </line-breakpoint>
       </breakpoints>
