@@ -341,6 +341,10 @@ def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_trut
     alpha = 0.9
     i = 0
     winflag = 1
+    
+    # sample level performance variables
+    samples_total = 0
+    samples_correct =0
     while winflag:  # loop through windows
         if i + win < len(trial):  # if not last window
             sample = trial[i:i+win]
@@ -353,15 +357,21 @@ def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_trut
         sample_filt = sp_filt.apply_filter(sample_filt, True)
         f, sample_psd = trial_psd(sample_filt, fs, flim, False)
         sample_feats = np.array(sample_psd.ravel()[np.flatnonzero(mask)]).reshape(1, -1)
-        BCI_prob.append(clf.predict_proba(sample_feats)[0, g_truth-1])
-        # Calculate sample sample level performance - Satvik
+        prediction_output = clf.predict_proba(sample_feats)
+        BCI_prob.append(prediction_output[0, g_truth-1])
+
+        # Calculate sample sample level performance - Malav
+        samples_total+=1
+        if prediction_output[0, g_truth-1] > 0.5:
+            samples_correct+=1
+
         accum_prob.append(alpha*accum_prob[-1] + (1-alpha)*BCI_prob[-1])  # accumulate evidence
         if accum_prob[-1] > thresh[g_truth-1]:  # compare to correct class threshold
-            return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": g_truth, "correct": 1}
+            return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": g_truth, "correct": 1, "samples_total": samples_total, "samples_correct": samples_correct}
         elif accum_prob[-1] < 1-thresh[g_truth % 2]:  # compare to incorrect class threshold
-            return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": (g_truth % 2)+1, "correct": 0}
+            return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": (g_truth % 2)+1, "correct": 0, "samples_total": samples_total, "samples_correct": samples_correct}
         i = i+step
-    return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": float("nan"), "correct": 0}
+    return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": float("nan"), "correct": 0, "samples_total": samples_total, "samples_correct": samples_correct}
 
 
 def cross_val(clf, x, y,  folds, gs=False):
@@ -538,6 +548,8 @@ plt.axhline(0.5, linewidth=0.5, linestyle='--', color='k')
 endx = 0
 startx = 0
 outcomes = {"No Decision": 0, 0: 0, 1: 0}
+sample_level_accuracies = []
+
 for tr, g_truth in zip(online_trials, online_truths):
     decision = simulate_trial(tr, win, lap, fs, broad_filt, car_filt, broad, mask, clf, g_truth, thresh)
     if math.isnan(decision["decision"]):
@@ -546,6 +558,12 @@ for tr, g_truth in zip(online_trials, online_truths):
         outcomes[decision["correct"]] = outcomes[decision["correct"]] + 1
     endx = startx + len(decision['accum_probs'])
     xvals = range(startx, endx)
+
+    # Sample level accuracies per trial
+    sample_data = [decision["samples_total"] , decision["samples_correct"], decision["samples_correct"] / decision["samples_total"]]
+    sample_level_accuracies.append(sample_data)
+
+    #plot results
     plt.scatter(xvals, decision['accum_probs'], s=1, c='b')
     plt.scatter(xvals, decision['BCI_probs'], s=1, c='r')
     plt.axvline(endx, linewidth=0.5, color='g')
@@ -553,12 +571,16 @@ for tr, g_truth in zip(online_trials, online_truths):
 
 
 # ------------------------------------- Online Trial Level Performance
+print(" ---- Trial Level ----")
 trial_correct = outcomes[1]/sum(outcomes.values())
-print("Trials Correct = ", trial_correct)
+print("Trials Correct (%)= ", trial_correct)
 trials_incorrect = outcomes[0]/sum(outcomes.values())
-print("Trials Incorrect = ", trials_incorrect)
+print("Trials Incorrect (%)= ", trials_incorrect)
 no_decision = outcomes["No Decision"]/sum(outcomes.values())
-print("No Decisions = ", no_decision)
+print("No Decisions (%)= ", no_decision)
+
+print(" ---- Sample Level ----")
+print(sample_level_accuracies)
 
 # Save to CSV
 data = [subject, electrode, session_id, trial_correct, trials_incorrect, no_decision]

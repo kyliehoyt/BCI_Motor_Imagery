@@ -1,5 +1,7 @@
 import os
 import csv
+import matplotlib.pyplot as plt
+import pandas as pd
 
 header = ["subject", "electrode", "correct", "incorrect", "no_decision"]
 try:
