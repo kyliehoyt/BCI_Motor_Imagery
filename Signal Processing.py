@@ -213,7 +213,7 @@ def runs2trials(ss, hs):
     return trs, truths
 
 
-def run_psd_fisher(s, h, win, lap, fs, t_filt, sp_filt, flim, ylab):
+def run_psd_fisher_win(s, h, win, lap, fs, t_filt, sp_filt, flim, ylab):
     win = math.floor(win * fs)  # seconds -> samples
     step = win - math.floor(lap * fs)  # seconds -> samples
     fmin_bin = int(flim[0] / 2)
@@ -268,7 +268,7 @@ def run_psd_fisher(s, h, win, lap, fs, t_filt, sp_filt, flim, ylab):
     # print("Total Windows", totot)
     return fisher
 
-def run_psd_fisher2(s, h, flim, ylab):
+def run_psd_fisher_trial(s, h, flim, ylab):
     fmin_bin = int(flim[0] / 2)
     fmax_bin = int(flim[1] / 2) + 1
     c = np.shape(s)[0]
@@ -355,7 +355,7 @@ def select_features(ranked_features, xlabs, ylabs, nfeat):
     return feat_mask, selected_features
 
 
-def build_training_data(runs, hs, win, lap, fs, t_filt, sp_filt, flim, mask):
+def build_training_data_win(runs, hs, win, lap, fs, t_filt, sp_filt, flim, mask):
     win = math.floor(win * fs)  # seconds -> samples
     step = win - math.floor(lap * fs)  # seconds -> samples
     x = np.zeros(np.sum(mask))
@@ -385,6 +385,36 @@ def build_training_data(runs, hs, win, lap, fs, t_filt, sp_filt, flim, mask):
                     winflag = 0
     return np.array(x[1:, :]), np.array(y)
 
+
+def build_training_data_trial(runs, hs, win, lap, fs, t_filt, sp_filt, flim, mask):
+    win = math.floor(win * fs)  # seconds -> samples
+    step = win - math.floor(lap * fs)  # seconds -> samples
+    x = np.zeros(np.sum(mask))
+    y = []
+    for s, h in zip(runs, hs):
+        for tr, trial in enumerate(s):
+            i = 0
+            winflag = 1
+            while (winflag):  # loop through windows
+                if i + win < np.shape(trial)[0]:  # if not the last window
+                    sample = trial[i:i + win, :]
+                    sample = t_filt.noncausal_filter(sample)
+                    sample = sp_filt.apply_filter(sample, True)
+                    f, sample_psd = trial_psd(sample, fs, flim, False)
+                    x = np.row_stack((x, sample_psd.ravel()[np.flatnonzero(mask)]))
+                    y.append(h['Classlabel'][tr])
+                    i = i + step
+                elif np.shape(trial)[0] - i > win/2:  # if last window is longer than win/4
+                    sample = trial[i:, :]
+                    sample = t_filt.noncausal_filter(sample)
+                    sample = sp_filt.apply_filter(sample, True)
+                    f, sample_psd = trial_psd(sample, fs, flim, False)
+                    x = np.row_stack((x, sample_psd.ravel()[np.flatnonzero(mask)]))
+                    y.append(h['Classlabel'][tr])
+                    winflag = 0
+                else:  # if last window is shorter than win/4
+                    winflag = 0
+    return np.array(x[1:, :]), np.array(y)
 
 def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_truth, thresh):
     win = math.floor(win*fs)  # seconds -> samples
@@ -431,7 +461,7 @@ def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_trut
                 # print("incorrect: ", g_truth)
                 return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": (g_truth % 2) + 1, "correct": 0}
             winflag = 0
-        else:  # if last window is shorter than win/4
+        else:  # if last window is shorter than win/2
             winflag = 0
     # print("no decision: ", g_truth)
     return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": float("nan"), "correct": 0}
@@ -553,7 +583,7 @@ plt.subplot(2, 3, 1)
 i = 1
 
 win = 1  # 1 s
-lap = 0.9  # 100 ms
+lap = 0.9  # 900 ms
 
 # Feature Selection
 car_filt = CARFilter(n_chan)
@@ -573,10 +603,10 @@ for S, H in zip(runs, heads):
     plt.title("Run " + str(i))
 
     # Feature selection and filtering by windows
-    fishers[i - 1, :, :] = run_psd_fisher(s_split, H, win, lap, fs, broad_filt, car_filt, broad, ylabels)
+    fishers[i - 1, :, :] = run_psd_fisher_win(s_split, H, win, lap, fs, broad_filt, car_filt, broad, ylabels)
 
     # Feature selection and filtering by trial
-    # fishers[i - 1, :, :] = run_psd_fisher2(s_split_filt, H, broad, ylabels)
+    # fishers[i - 1, :, :] = run_psd_fisher_trial(s_split_filt, H, broad, ylabels)
     i = i + 1
 
 
@@ -607,7 +637,7 @@ for S, H in zip(runs, heads):
 
     unmasked_epochs.append(s)
 
-x, y = build_training_data(unmasked_epochs, heads, win, lap, fs, broad_filt, car_filt, broad, mask)
+x, y = build_training_data_win(unmasked_epochs, heads, win, lap, fs, broad_filt, car_filt, broad, mask)
 # print(y.shape)
 # print(x.shape)
 # df = pd.DataFrame(x)
