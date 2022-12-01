@@ -3,7 +3,7 @@ import csv
 import matplotlib.pyplot as plt
 import pandas as pd
 
-header = ["subject", "electrode", "correct", "incorrect", "no_decision"]
+header = ["subject", "electrode", "session_id", "correct", "incorrect", "no_decision"]
 try:
     os.remove('subject_results.csv')
 except:
@@ -12,6 +12,17 @@ except:
 with open('subject_results.csv', 'w', encoding='UTF8', newline='') as f:
     writer = csv.writer(f)
     # write the header
+    writer.writerow(header)
+
+#sample level data
+header = ["subject", "electrode", "session_id", "class1_accuracy", "class2_accuracy", "total_accuracy", "sample_bias"]
+try:
+    os.remove('sample_results.csv')
+except:
+    pass
+
+with open('sample_results.csv', 'w', encoding='UTF8', newline='') as f:
+    writer = csv.writer(f)
     writer.writerow(header)
 
 electrodes = ['Gel', 'Poly']

@@ -344,7 +344,7 @@ def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_trut
     
     # sample level performance variables
     samples_total = 0
-    samples_correct =0
+    samples_correct = [0, 0]
     while winflag:  # loop through windows
         if i + win < len(trial):  # if not last window
             sample = trial[i:i+win]
@@ -363,15 +363,15 @@ def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_trut
         # Calculate sample sample level performance - Malav
         samples_total+=1
         if prediction_output[0, g_truth-1] > 0.5:
-            samples_correct+=1
+            samples_correct[g_truth-1]+=1
 
         accum_prob.append(alpha*accum_prob[-1] + (1-alpha)*BCI_prob[-1])  # accumulate evidence
         if accum_prob[-1] > thresh[g_truth-1]:  # compare to correct class threshold
-            return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": g_truth, "correct": 1, "samples_total": samples_total, "samples_correct": samples_correct}
+            return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": g_truth, "correct": 1, "samples_total": samples_total, "samples_correct": samples_correct, "ground_truth": g_truth}
         elif accum_prob[-1] < 1-thresh[g_truth % 2]:  # compare to incorrect class threshold
-            return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": (g_truth % 2)+1, "correct": 0, "samples_total": samples_total, "samples_correct": samples_correct}
+            return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": (g_truth % 2)+1, "correct": 0, "samples_total": samples_total, "samples_correct": samples_correct,  "ground_truth": g_truth}
         i = i+step
-    return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": float("nan"), "correct": 0, "samples_total": samples_total, "samples_correct": samples_correct}
+    return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": float("nan"), "correct": 0, "samples_total": samples_total, "samples_correct": samples_correct,  "ground_truth": g_truth}
 
 
 def cross_val(clf, x, y,  folds, gs=False):
@@ -560,7 +560,7 @@ for tr, g_truth in zip(online_trials, online_truths):
     xvals = range(startx, endx)
 
     # Sample level accuracies per trial
-    sample_data = [decision["samples_total"] , decision["samples_correct"], decision["samples_correct"] / decision["samples_total"]]
+    sample_data = [decision["ground_truth"], decision["samples_total"] , decision["samples_correct"][0], decision["samples_correct"][1]]
     sample_level_accuracies.append(sample_data)
 
     #plot results
@@ -581,14 +581,36 @@ print("No Decisions (%)= ", no_decision)
 
 print(" ---- Sample Level ----")
 print(sample_level_accuracies)
+sample_total_1 = 0
+sample_total_2 = 0
+sample_correct_1 = 0
+sample_correct_2 = 0
+for sample in sample_level_accuracies:
+    if(sample[0] == 1):
+        sample_total_1 += sample[1]
+        sample_correct_1 += sample[2]
+    else:
+        sample_total_2 += sample[1]
+        sample_correct_2 += sample[3]
+sample_class_1_accuracy = sample_correct_1/sample_total_1
+sample_class_2_accuracy = sample_correct_2/sample_total_2
+sample_total_accuracy = (sample_correct_1 + sample_correct_2) / (sample_total_1 + sample_total_2)
+sample_bias = abs(sample_correct_1/sample_total_1 - sample_correct_2/sample_total_2)
+print("Class 1 Sample Accuracy: ", sample_class_1_accuracy)
+print("Class 2 Sample Accuracy: ", sample_class_2_accuracy)
+print("Total Sample Accuracy: ", sample_total_accuracy)
+print("Sample accuracy Bias: ", sample_bias)
 
 # Save to CSV
 data = [subject, electrode, session_id, trial_correct, trials_incorrect, no_decision]
 with open('subject_results.csv', 'a', encoding='UTF8', newline='') as f:
     writer = csv.writer(f)
-    # write the header
-    # writer.writerow(["Subject", "Electrode", "Online Session", "Trials Correct", "Trials Incorrect", "Trials No Decision"])
     writer.writerow(data)
+
+sample_data = [subject, electrode, session_id, sample_class_1_accuracy, sample_class_2_accuracy, sample_total_accuracy, sample_bias]
+with open('sample_results.csv', 'a', encoding='UTF8', newline='') as f:
+    writer = csv.writer(f)
+    writer.writerow(sample_data)
 
 print("Done Running")
 if not scripting:
