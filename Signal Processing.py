@@ -382,12 +382,11 @@ def cross_val(clf, x, y,  folds, gs=False):
 
 
 # ------------------------------------- Loading Data Parameters
-subject = 4
-electrode = 'Gel'
+subject = 6
+electrode = 'Poly'
 session_type = 'offline'
-session_id = 1
 n_chan = 13
-scripting = False
+scripting = True
 
 #### SET THIS TO FALSE IF YOU WANT TO JUST USE DEFAULT VALUES SET ABOVE #####
 take_inputs = False
@@ -424,7 +423,7 @@ print("Electrode Type: " + str(electrode))
 
 
 # ------------------------------------- Loading Offline Data
-file_path = "subject_" + str(subject) + "/" + electrode + "/" + session_type + "/session_" + str(session_id) + "/"
+file_path = "subject_" + str(subject) + "/" + electrode + "/" + session_type + "/session_1/"
 #os.chdir('/Users/satvik/Desktop/BCI_Motor_Imagery/')
 channel_path = 'chaninfo_' + electrode
 
@@ -514,7 +513,7 @@ val = cross_val(clf, x, y, folds=4, gs=False)
 
 # ------------------------------------- Loading Online Data
 session_type = 'online'
-session_id = 1
+session_id = 2
 file_path = "subject_" + str(subject) + "/" + electrode + "/" + session_type + "/session_" + str(session_id) + "/"
 h1_on = loadmat(file_path + 'h1.mat')['h']
 h2_on = loadmat(file_path + 'h2.mat')['h']
@@ -561,11 +560,12 @@ print("Trials Incorrect = ", trials_incorrect)
 no_decision = outcomes["No Decision"]/sum(outcomes.values())
 print("No Decisions = ", no_decision)
 
-# ------------------------------------- Save to CSV
-data = [subject, electrode, trial_correct, trials_incorrect, no_decision]
+# Save to CSV
+data = [subject, electrode, session_id, trial_correct, trials_incorrect, no_decision]
 with open('subject_results.csv', 'a', encoding='UTF8', newline='') as f:
     writer = csv.writer(f)
     # write the header
+    # writer.writerow(["Subject", "Electrode", "Online Session", "Trials Correct", "Trials Incorrect", "Trials No Decision"])
     writer.writerow(data)
 
 print("Done Running")
