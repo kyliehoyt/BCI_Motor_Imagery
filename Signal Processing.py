@@ -13,6 +13,8 @@ from sklearn.model_selection import cross_val_score
 from sklearn.svm import SVC
 import os
 import pandas as pd
+import argparse
+import csv
 
 LargeNeighbors = [[2, 4],
                   [5],
@@ -487,32 +489,6 @@ def cross_val(clf, x, y,  folds, gs=False):
     return clf
 
 
-# File Structure
-# > subject_<id>
-#     > gel
-#        > offline
-#            > session_1
-#                > h1.mat
-#                > s1.mat
-#        > online
-#            > session_1
-#                > h1.mat
-#                > s1.mat
-#            > session_2
-#                > h1.mat
-#                > s1.mat
-#     > poly
-#        > offline
-#            > session_1
-#                > h1.mat
-#                > s1.mat
-#        > online
-#            > session_1
-#                > h1.mat
-#                > s1.mat
-#            > session_2
-#                > h1.mat
-#                > s1.mat
 
 # Load Data Parameters
 subject = 4
@@ -520,35 +496,41 @@ electrode = 'Gel'
 session_type = 'offline'
 session_id = 1
 n_chan = 13
+scripting = False
 
 #### SET THIS TO FALSE IF YOU WANT TO JUST USE DEFAULT VALUES SET ABOVE #####
 take_inputs = False
 
-# Take parsed inputs
+
+# If inputs are from argument parser (for scripting)
+parser = argparse.ArgumentParser()
+parser.add_argument('-subject', dest='subject_id', action='store', help="subject id")
+parser.add_argument('-electrode', dest='electrode_type', action='store', help="subject id")
+args = parser.parse_args()
+if args.subject_id != None:
+    subject = int(args.subject_id)
+    electrode = str(args.electrode_type)
+    take_inputs = False
+    scripting = True
+
+# Take parsed inputs from user
 if take_inputs:
     print(">>> Leave blank to use default values")
     inputin = input('subject_id: ')
     if inputin != '':
         subject = int(inputin)
-
     inputin = input('Electrode type: ')
     if inputin != '':
         if(inputin[0] == 'g'):
             electrode = 'Gel'
-        if(inputin[0]=='d'):
-            electrode = 'Dry'
-
-    inputin = input('Session id: ')
-    if inputin != '':
-        session_id = int(inputin)
-
-    if(session_id < 1 or session_id > 2):
-        print("Incorrect session_id")
-        exit()
+        if(inputin[0]=='p'):
+            electrode = 'Poly'
     if(subject < 4 or subject > 6):
         print("invalid subject")
         exit()
 
+print("Subject: " + str(subject))
+print("Electrode Type: " + str(electrode));
 file_path = "subject_" + str(subject) + "/" + electrode + "/" + session_type + "/session_" + str(session_id) + "/"
 
 #os.chdir('/Users/satvik/Desktop/BCI_Motor_Imagery/')
@@ -618,7 +600,8 @@ sns.heatmap(rank_sum_fisher, xticklabels=xlabels, yticklabels=ylabels)
 plt.subplot(2, 3, 6)
 plt.title("log(Rank weighted sum)")
 sns.heatmap(np.log10(rank_sum_fisher), xticklabels=xlabels, yticklabels=ylabels)
-plt.show()
+if not scripting:
+    plt.show()
 
 mask, feats = select_features(rank_sum_fisher, xlabels, ylabels, 20)
 print(feats)
@@ -701,11 +684,23 @@ for tr, g_truth in zip(online_trials, online_truths):
 
 
 # compute trial performance
-print("Trials Correct = ", outcomes[1]/sum(outcomes.values()))
-print("Trials Incorrect = ", outcomes[0]/sum(outcomes.values()))
-print("No Decisions = ", outcomes["No Decision"]/sum(outcomes.values()))
-print("hello world")
-plt.show()
+trial_correct = outcomes[1]/sum(outcomes.values())
+print("Trials Correct = ", trial_correct)
+trials_incorrect = outcomes[0]/sum(outcomes.values())
+print("Trials Incorrect = ", trials_incorrect)
+no_decision = outcomes["No Decision"]/sum(outcomes.values())
+print("No Decisions = ", no_decision)
+
+# Save to CSV
+data = [subject, electrode, trial_correct, trials_incorrect, no_decision]
+with open('subject_results.csv', 'a', encoding='UTF8', newline='') as f:
+    writer = csv.writer(f)
+    # write the header
+    writer.writerow(data)
+
+print("Done Running")
+if not scripting:
+    plt.show()
 
 
 
