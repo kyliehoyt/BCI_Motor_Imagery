@@ -341,7 +341,6 @@ def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_trut
     alpha = 0.9
     i = 0
     winflag = 1
-    
     # sample level performance variables
     samples_total = 0
     samples_correct = [0, 0]
@@ -392,7 +391,7 @@ def cross_val(clf, x, y,  folds, gs=False):
 
 
 # ------------------------------------- Loading Data Parameters
-subject = 6
+subject = 5
 electrode = 'Poly'
 session_type = 'offline'
 n_chan = 13
@@ -514,6 +513,7 @@ x, y = build_training_data(unmasked_epochs, heads, win, lap, fs, broad_filt, car
 clf = LinearDiscriminantAnalysis(priors=[0.5, 0.5])
 # clf = SVC(probability=True)
 clf.fit(x, y)
+print(np.size(y))
 
 
 # ------------------------------------- Cross Validation
@@ -523,7 +523,7 @@ val = cross_val(clf, x, y, folds=4, gs=False)
 
 # ------------------------------------- Loading Online Data
 session_type = 'online'
-session_id = 2
+session_id = 1
 file_path = "subject_" + str(subject) + "/" + electrode + "/" + session_type + "/session_" + str(session_id) + "/"
 h1_on = loadmat(file_path + 'h1.mat')['h']
 h2_on = loadmat(file_path + 'h2.mat')['h']
@@ -534,6 +534,32 @@ s3_on = loadmat(file_path + 's3.mat')['s'][:, :n_chan]
 online_runs = [s1_on, s2_on, s3_on]
 online_heads = [h1_on, h2_on, h3_on]
 online_trials, online_truths = runs2trials(online_runs, online_heads)
+
+
+# ------------------------------------- Retraining Between Sessions
+retraining_between_online = False
+if retraining_between_online:
+    for S, H in zip(online_runs, online_heads):
+        s, truths = runs2trials([S], [H])
+        unmasked_epochs.append(s)
+    x, y = build_training_data(unmasked_epochs, heads+online_heads, win, lap, fs, broad_filt, car_filt,
+                               broad, mask)
+    clf.fit(x, y)
+    print(np.size(y))
+    val = cross_val(clf, x, y, folds=7, gs=False)
+    session_type = 'online'
+    session_id = 2
+    file_path = "subject_" + str(subject) + "/" + electrode + "/online/session_2/"
+    h1_on = loadmat(file_path + 'h1.mat')['h']
+    h2_on = loadmat(file_path + 'h2.mat')['h']
+    h3_on = loadmat(file_path + 'h3.mat')['h']
+    s1_on = loadmat(file_path + 's1.mat')['s'][:, :n_chan]
+    s2_on = loadmat(file_path + 's2.mat')['s'][:, :n_chan]
+    s3_on = loadmat(file_path + 's3.mat')['s'][:, :n_chan]
+    online_runs = [s1_on, s2_on, s3_on]
+    online_heads = [h1_on, h2_on, h3_on]
+    online_trials, online_truths = runs2trials(online_runs, online_heads)
+
 
 
 # ------------------------------------- Online Simulation

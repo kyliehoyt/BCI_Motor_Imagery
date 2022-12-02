@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="59eb55c6-454f-4ae9-84b1-22a86ce5229f" name="Changes" comment="cleaning">
+    <list default="true" id="59eb55c6-454f-4ae9-84b1-22a86ce5229f" name="Changes" comment="Trial level performance for session 2">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Signal Processing.py" beforeDir="false" afterPath="$PROJECT_DIR$/Signal Processing.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/subject_results.csv" beforeDir="false" afterPath="$PROJECT_DIR$/subject_results.csv" afterDir="false" />
@@ -27,10 +27,31 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
-    "last_opened_file_path": "C:/Users/kylie/Documents/GitHub/BCI_Motor_Imagery/Subject_Testing.py"
+    "last_opened_file_path": "C:/Users/kylie/Documents/GitHub/BCI_Motor_Imagery/result_plotter.py"
   }
 }]]></component>
-  <component name="RunManager" selected="Python.Signal Processing">
+  <component name="RunManager" selected="Python.Result Plotter">
+    <configuration name="Result Plotter" type="PythonConfigurationType" factoryName="Python">
+      <module name="BCI_Motor_Imagery" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="C:\Users\kylie\AppData\Local\Programs\Python\Python39\python.exe" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/result_plotter.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="Signal Processing" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
       <module name="BCI_Motor_Imagery" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -75,6 +96,7 @@
     </configuration>
     <list>
       <item itemvalue="Python.Signal Processing" />
+      <item itemvalue="Python.Result Plotter" />
       <item itemvalue="Python.Subject_Testing" />
     </list>
   </component>
@@ -283,7 +305,14 @@
       <option name="project" value="LOCAL" />
       <updated>1669862862686</updated>
     </task>
-    <option name="localTasksCounter" value="29" />
+    <task id="LOCAL-00029" summary="Trial level performance for session 2">
+      <created>1669865972449</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1669865972449</updated>
+    </task>
+    <option name="localTasksCounter" value="30" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -357,6 +386,18 @@
     <MESSAGE value="Fixed last window thing and output trial accuracy" />
     <MESSAGE value="during meeting" />
     <MESSAGE value="cleaning" />
-    <option name="LAST_COMMIT_MESSAGE" value="cleaning" />
+    <MESSAGE value="Trial level performance for session 2" />
+    <option name="LAST_COMMIT_MESSAGE" value="Trial level performance for session 2" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Signal Processing.py</url>
+          <line>331</line>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>
