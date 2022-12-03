@@ -24,7 +24,6 @@ from itertools import product
 large_neighbors = [[6], [2, 8], [1, 3, 9], [2, 4, 10], [3, 11], [6], [0, 5, 7], [6], [1, 9], [2, 8, 10], [3, 9, 11], [4, 10], []]
 
 
-
 # ------------------------------------- Signal Processing Classes/Functions
 class TemporalFilter:
     def __init__(self, n, btype):
@@ -410,21 +409,21 @@ def cross_val(clf_name, x, y,  folds, gs=False):
                 params = list(params)
                 if params[0] == 'svd':
                     params[3] = None
-                clf = LinearDiscriminantAnalysis(solver=params[0], store_covariance=params[1], tol=params[2], shrinkage=params[3], priors=[0.5, 0.5])
+                clf = LinearDiscriminantAnalysis(solver=params[0], store_covariance=params[2], tol=params[1], shrinkage=params[3], priors=[0.5, 0.5])
                 clf_results = cross_val_score(clf, x, y, scoring='accuracy', cv=cv).mean()
                 print('Fitting + CV for:', params, 'Results:', clf_results)
                 if clf_results > best_performance:
                     best_performance = clf_results
                     best_performer = params
             print(best_performer)
-            return LinearDiscriminantAnalysis(solver=best_performer[0], store_covariance=best_performer[1], tol=best_performer[2], shrinkage=best_performer[3], priors=[0.5, 0.5])
+            return LinearDiscriminantAnalysis(solver=best_performer[0], store_covariance=best_performer[2], tol=best_performer[1], shrinkage=best_performer[3], priors=[0.5, 0.5])
 
 
     return clf
 
 
 # ------------------------------------- Loading Data Parameters
-subject = 5
+subject = 6
 electrode = 'Poly'
 session_type = 'offline'
 n_chan = 13
@@ -489,7 +488,7 @@ n_trials = len(h1['Classlabel'])
 broad = [4, 30]
 broad_filt = ButterFilter(2, 'band', fs, broad)
 car_filt = CARFilter(n_chan)
-print('chaninfo:', chaninfo[0])
+# print('chaninfo:', chaninfo[0])
 lap_filt = LaplacianFilter('large laplacian', neighborhood=large_neighbors, h=chaninfo)
 s_filt = car_filt
 win = 1  # 1 s
@@ -548,7 +547,6 @@ for S, H in zip(runs, heads):
 x, y = build_training_data(unmasked_epochs, heads, win, lap, fs, broad_filt, s_filt, broad, mask)
 clf_name = 'LDA'
 # clf = SVC(probability=True)
-#clf.fit(x, y)
 
 
 # ------------------------------------- Cross Validation
@@ -576,11 +574,10 @@ if retraining_between_online:
     for S, H in zip(online_runs, online_heads):
         s, truths = runs2trials([S], [H])
         unmasked_epochs.append(s)
-    x, y = build_training_data(unmasked_epochs, heads+online_heads, win, lap, fs, broad_filt, car_filt,
+    x, y = build_training_data(unmasked_epochs, heads+online_heads, win, lap, fs, broad_filt, s_filt,
                                broad, mask)
+    clf = cross_val(clf_name, x, y, folds=7, gs=True)
     clf.fit(x, y)
-    print(np.size(y))
-    val = cross_val(clf, x, y, folds=7, gs=False)
     session_type = 'online'
     session_id = 2
     file_path = "subject_" + str(subject) + "/" + electrode + "/online/session_2/"

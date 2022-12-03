@@ -4,9 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="59eb55c6-454f-4ae9-84b1-22a86ce5229f" name="Changes" comment="Trial level performance for session 2">
+    <list default="true" id="59eb55c6-454f-4ae9-84b1-22a86ce5229f" name="Changes" comment="Added option to retrain decoder between session">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Signal Processing.py" beforeDir="false" afterPath="$PROJECT_DIR$/Signal Processing.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sample_results.csv" beforeDir="false" afterPath="$PROJECT_DIR$/sample_results.csv" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/subject_results.csv" beforeDir="false" afterPath="$PROJECT_DIR$/subject_results.csv" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -25,12 +26,12 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "last_opened_file_path": "C:/Users/kylie/Documents/GitHub/BCI_Motor_Imagery/result_plotter.py"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/kylie/Documents/GitHub/BCI_Motor_Imagery/result_plotter.py&quot;
   }
-}]]></component>
-  <component name="RunManager" selected="Python.Result Plotter">
+}</component>
+  <component name="RunManager" selected="Python.Signal Processing">
     <configuration name="Result Plotter" type="PythonConfigurationType" factoryName="Python">
       <module name="BCI_Motor_Imagery" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -312,7 +313,14 @@
       <option name="project" value="LOCAL" />
       <updated>1669865972449</updated>
     </task>
-    <option name="localTasksCounter" value="30" />
+    <task id="LOCAL-00030" summary="Added option to retrain decoder between session">
+      <created>1669960087428</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1669960087429</updated>
+    </task>
+    <option name="localTasksCounter" value="31" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -387,14 +395,15 @@
     <MESSAGE value="during meeting" />
     <MESSAGE value="cleaning" />
     <MESSAGE value="Trial level performance for session 2" />
-    <option name="LAST_COMMIT_MESSAGE" value="Trial level performance for session 2" />
+    <MESSAGE value="Added option to retrain decoder between session" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added option to retrain decoder between session" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/Signal Processing.py</url>
-          <line>331</line>
+          <line>348</line>
           <option name="timeStamp" value="2" />
         </line-breakpoint>
       </breakpoints>
