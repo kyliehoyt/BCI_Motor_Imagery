@@ -25,11 +25,11 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "last_opened_file_path": "C:/Users/kylie/Documents/GitHub/BCI_Motor_Imagery/Subject_Testing.py"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/kylie/Documents/GitHub/BCI_Motor_Imagery/Subject_Testing.py&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager" selected="Python.Signal Processing">
     <configuration name="Signal Processing" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
       <module name="BCI_Motor_Imagery" />
