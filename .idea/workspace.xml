@@ -4,11 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="59eb55c6-454f-4ae9-84b1-22a86ce5229f" name="Changes" comment="Added option to retrain decoder between session">
+    <list default="true" id="59eb55c6-454f-4ae9-84b1-22a86ce5229f" name="Changes" comment="Fixed bug">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Signal Processing.py" beforeDir="false" afterPath="$PROJECT_DIR$/Signal Processing.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sample_results.csv" beforeDir="false" afterPath="$PROJECT_DIR$/sample_results.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/subject_results.csv" beforeDir="false" afterPath="$PROJECT_DIR$/subject_results.csv" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -324,7 +321,14 @@
       <option name="project" value="LOCAL" />
       <updated>1669960087429</updated>
     </task>
-    <option name="localTasksCounter" value="31" />
+    <task id="LOCAL-00031" summary="Fixed bug">
+      <created>1670101505898</created>
+      <option name="number" value="00031" />
+      <option name="presentableId" value="LOCAL-00031" />
+      <option name="project" value="LOCAL" />
+      <updated>1670101505898</updated>
+    </task>
+    <option name="localTasksCounter" value="32" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -400,7 +404,8 @@
     <MESSAGE value="cleaning" />
     <MESSAGE value="Trial level performance for session 2" />
     <MESSAGE value="Added option to retrain decoder between session" />
-    <option name="LAST_COMMIT_MESSAGE" value="Added option to retrain decoder between session" />
+    <MESSAGE value="Fixed bug" />
+    <option name="LAST_COMMIT_MESSAGE" value="Fixed bug" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

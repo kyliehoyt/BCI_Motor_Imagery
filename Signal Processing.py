@@ -200,9 +200,9 @@ def runs2trials(ss, hs):
 
 
 # ------------------------------------- Feature Selection/Extraction Functions
-def run_psd_fisher_win(s, h, win, lap, fs, t_filt, sp_filt, flim, ylab):
+def run_psd_fisher_win(s, h, win, step, fs, t_filt, sp_filt, flim, ylab):
     win = math.floor(win * fs)  # seconds -> samples
-    step = win - math.floor(lap * fs)  # seconds -> samples
+    step = math.floor(step * fs)  # seconds -> samples
     fmin_bin = int(flim[0] / 2)
     fmax_bin = int(flim[1] / 2) + 1
     c = np.shape(s)[0]
@@ -323,9 +323,9 @@ def select_features(ranked_features, xlabs, ylabs, nfeat):
     return feat_mask, selected_features
 
 
-def build_training_data(runs, hs, win, lap, fs, t_filt, sp_filt, flim, mask):
+def build_training_data(runs, hs, win, step, fs, t_filt, sp_filt, flim, mask):
     win = math.floor(win * fs)  # seconds -> samples
-    step = win - math.floor(lap * fs)  # seconds -> samples
+    step = math.floor(step * fs)  # seconds -> samples
     x = np.zeros(np.sum(mask))
     y = []
     for s, h in zip(runs, hs):
@@ -350,9 +350,9 @@ def build_training_data(runs, hs, win, lap, fs, t_filt, sp_filt, flim, mask):
 
 
 # ------------------------------------- Feature Classification Functions
-def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_truth, thresh):
+def simulate_trial(trial, win, step, fs, t_filt, sp_filt, flim, mask, clf, g_truth, thresh):
     win = math.floor(win*fs)  # seconds -> samples
-    step = win - math.floor(lap*fs)  # seconds -> samples
+    step = math.floor(step * fs)  # seconds -> samples
     accum_prob = [0.5]
     BCI_prob = [0.5]
     alpha = 0.9
@@ -492,7 +492,7 @@ car_filt = CARFilter(n_chan)
 lap_filt = LaplacianFilter('large laplacian', neighborhood=large_neighbors, h=chaninfo)
 s_filt = car_filt
 win = 1  # 1 s
-lap = 0.9  # 900 ms
+step = 0.0625  # 62.5 ms
 
 
 # ------------------------------------- Feature Selection
@@ -516,7 +516,7 @@ for S, H in zip(runs, heads):
     plt.title("Run " + str(i))
 
     # Feature selection and filtering by windows
-    fishers[i - 1, :, :] = run_psd_fisher_win(s_split, H, win, lap, fs, broad_filt, s_filt, broad, ylabels)
+    fishers[i - 1, :, :] = run_psd_fisher_win(s_split, H, win, step, fs, broad_filt, s_filt, broad, ylabels)
 
     # Feature selection and filtering by trial
     # fishers[i - 1, :, :] = run_psd_fisher_trial(s_split_filt, H, broad, ylabels)
@@ -544,7 +544,7 @@ for S, H in zip(runs, heads):
     s, truths = runs2trials([S], [H])
     unmasked_epochs.append(s)
 
-x, y = build_training_data(unmasked_epochs, heads, win, lap, fs, broad_filt, s_filt, broad, mask)
+x, y = build_training_data(unmasked_epochs, heads, win, step, fs, broad_filt, s_filt, broad, mask)
 clf_name = 'LDA'
 # clf = SVC(probability=True)
 
@@ -574,7 +574,7 @@ if retraining_between_online:
     for S, H in zip(online_runs, online_heads):
         s, truths = runs2trials([S], [H])
         unmasked_epochs.append(s)
-    x, y = build_training_data(unmasked_epochs, heads+online_heads, win, lap, fs, broad_filt, s_filt,
+    x, y = build_training_data(unmasked_epochs, heads+online_heads, win, step, fs, broad_filt, s_filt,
                                broad, mask)
     clf = cross_val(clf_name, x, y, folds=7, gs=True)
     clf.fit(x, y)
@@ -608,7 +608,7 @@ outcomes = {"No Decision": 0, 0: 0, 1: 0}
 sample_level_accuracies = []
 
 for tr, g_truth in zip(online_trials, online_truths):
-    decision = simulate_trial(tr, win, lap, fs, broad_filt, s_filt, broad, mask, clf, g_truth, thresh)
+    decision = simulate_trial(tr, win, step, fs, broad_filt, s_filt, broad, mask, clf, g_truth, thresh)
     if math.isnan(decision["decision"]):
         outcomes["No Decision"] = outcomes["No Decision"] + 1
     else:
