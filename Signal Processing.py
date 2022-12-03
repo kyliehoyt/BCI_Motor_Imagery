@@ -15,6 +15,15 @@ import os
 import pandas as pd
 import argparse
 import csv
+from itertools import product
+
+# ------------------------------------- Laplacian Neighbors
+# large_neighbors = [[6, 12], [2, 8], [1, 3, 9, 12], [2, 12, 4, 10], [3, 11], [6], [0, 5, 7, 12], [6], [1, 9], [2, 8, 10], [3, 9, 11], [4, 10], [0, 2, 6, 3]]
+
+
+large_neighbors = [[6], [2, 8], [1, 3, 9], [2, 4, 10], [3, 11], [6], [0, 5, 7], [6], [1, 9], [2, 8, 10], [3, 9, 11], [4, 10], []]
+
+
 
 # ------------------------------------- Signal Processing Classes/Functions
 class TemporalFilter:
@@ -70,15 +79,24 @@ class LaplacianFilter(SpatialFilter):
         self.neighborhood = neighborhood
         self.filter = np.identity(len(self.neighborhood))
         for r in range(len(self.filter)):
-            sum_dij = sum(self.distance(h, r, self.neighborhood(r)))
-            self.filter[r, self.neighborhood[r]] = [-1 * dij / sum_dij for dij in
-                                                    self.distance(h, r, self.neighborhood[r])]
+            if len(self.neighborhood[r]) > 0:
+                #print(self.neighborhood[r])
+                sum_dij = sum(self.distance(h, r, self.neighborhood[r]))
+                self.filter[r, self.neighborhood[r]] = [-1 * dij / sum_dij for dij in
+                                                        self.distance(h, r, self.neighborhood[r])]
+            else:
+                continue
 
     def distance(self, h, c1, c2):
-        return [((h(c).X - h(c1).X) ** 2 + (h(c).Y - h(c1).Y) ** 2 + (h(c).Z - h(c1).Z) ** 2) ** 0.5 for c in c2]
+        return [((h[c]['X'] - h[c1]['X']) ** 2 + (h[c]['Y'] - h[c1]['Y']) ** 2 + (h[c]['Z'] - h[c1]['Z']) ** 2) ** 0.5 for c in c2]
 
-    def apply_filter(self, s):
-        super().filter_raw_sig(s, self.filter)
+    def apply_filter(self, s, rawflag):
+        if rawflag: # raw data (samples, channels)
+            return super().filter_raw_sig(s, self.filter)
+        else:  # trial data (win, channels, trials)
+            for tr in range(np.shape(s)[0]):
+                s[tr] = np.matmul(s[tr], self.filter)
+            return s
 
 
 class CARFilter(SpatialFilter):
@@ -373,20 +391,35 @@ def simulate_trial(trial, win, lap, fs, t_filt, sp_filt, flim, mask, clf, g_trut
     return {"BCI_probs": BCI_prob, "accum_probs": accum_prob, "decision": float("nan"), "correct": 0, "samples_total": samples_total, "samples_correct": samples_correct,  "ground_truth": g_truth}
 
 
-def cross_val(clf, x, y,  folds, gs=False):
-    cv = KFold(folds, shuffle=False)
-    cv_results = cross_val_score(clf, x, y, scoring='accuracy', cv=cv)
-    cv_mean = cv_results.mean()
-    print("Mean Cross Validation Score Across Folds: ", cv_mean)
+def cross_val(clf_name, x, y,  folds, gs=False):
+    if clf_name == 'LDA':
+        clf = LinearDiscriminantAnalysis(priors=[0.5, 0.5])
+        cv = KFold(folds, shuffle=False)
+        cv_results = cross_val_score(clf, x, y, scoring='accuracy', cv=cv)
+        cv_mean = cv_results.mean()
+        print("Mean Cross Validation Score Across Folds: ", cv_mean)
 
     # Hyperparameter Optimization
     if gs:
-        p_grid = {"solver": ['svd'], "tol": [0.0001, 0.0002, 0.0003], "store_covariance": [True, False]}
-        gs_clf = GridSearchCV(estimator=clf, param_grid=p_grid, cv=4, scoring='accuracy', verbose=2)
-        gs_clf.fit(x, y)
-        clf_params = gs_clf.best_params_
-        # Apply best params to classifier
-        return clf_params
+        if clf_name == 'LDA':
+            params = [['svd', 'lsqr', 'eigen'], [0.00005, 0.0001, 0.0002, 0.0003], [True, False], [0.95, 0.90, 0.85, 0.80, 0.75]]
+            possible_params = product(*params)
+            best_performance = 0
+            best_performer = []
+            for params in possible_params:
+                params = list(params)
+                if params[0] == 'svd':
+                    params[3] = None
+                clf = LinearDiscriminantAnalysis(solver=params[0], store_covariance=params[1], tol=params[2], shrinkage=params[3], priors=[0.5, 0.5])
+                clf_results = cross_val_score(clf, x, y, scoring='accuracy', cv=cv).mean()
+                print('Fitting + CV for:', params, 'Results:', clf_results)
+                if clf_results > best_performance:
+                    best_performance = clf_results
+                    best_performer = params
+            print(best_performer)
+            return LinearDiscriminantAnalysis(solver=best_performer[0], store_covariance=best_performer[1], tol=best_performer[2], shrinkage=best_performer[3], priors=[0.5, 0.5])
+
+
     return clf
 
 
@@ -433,7 +466,7 @@ print("Electrode Type: " + str(electrode))
 
 # ------------------------------------- Loading Offline Data
 file_path = "subject_" + str(subject) + "/" + electrode + "/" + session_type + "/session_1/"
-#os.chdir('/Users/satvik/Desktop/BCI_Motor_Imagery/')
+# os.chdir('/Users/satvik/Desktop/BCI_Motor_Imagery/')
 channel_path = 'chaninfo_' + electrode
 
 chaninfo = loadmat(channel_path + '.mat')[channel_path]['channels']
@@ -456,6 +489,9 @@ n_trials = len(h1['Classlabel'])
 broad = [4, 30]
 broad_filt = ButterFilter(2, 'band', fs, broad)
 car_filt = CARFilter(n_chan)
+print('chaninfo:', chaninfo[0])
+lap_filt = LaplacianFilter('large laplacian', neighborhood=large_neighbors, h=chaninfo)
+s_filt = car_filt
 win = 1  # 1 s
 lap = 0.9  # 900 ms
 
@@ -481,7 +517,7 @@ for S, H in zip(runs, heads):
     plt.title("Run " + str(i))
 
     # Feature selection and filtering by windows
-    fishers[i - 1, :, :] = run_psd_fisher_win(s_split, H, win, lap, fs, broad_filt, car_filt, broad, ylabels)
+    fishers[i - 1, :, :] = run_psd_fisher_win(s_split, H, win, lap, fs, broad_filt, s_filt, broad, ylabels)
 
     # Feature selection and filtering by trial
     # fishers[i - 1, :, :] = run_psd_fisher_trial(s_split_filt, H, broad, ylabels)
@@ -509,17 +545,15 @@ for S, H in zip(runs, heads):
     s, truths = runs2trials([S], [H])
     unmasked_epochs.append(s)
 
-x, y = build_training_data(unmasked_epochs, heads, win, lap, fs, broad_filt, car_filt, broad, mask)
-clf = LinearDiscriminantAnalysis(priors=[0.5, 0.5])
+x, y = build_training_data(unmasked_epochs, heads, win, lap, fs, broad_filt, s_filt, broad, mask)
+clf_name = 'LDA'
 # clf = SVC(probability=True)
-clf.fit(x, y)
-print(np.size(y))
+#clf.fit(x, y)
 
 
 # ------------------------------------- Cross Validation
-val = cross_val(clf, x, y, folds=4, gs=False)
-# print(val)
-
+clf = cross_val(clf_name, x, y, folds=4, gs=True)
+clf.fit(x, y)
 
 # ------------------------------------- Loading Online Data
 session_type = 'online'
@@ -577,7 +611,7 @@ outcomes = {"No Decision": 0, 0: 0, 1: 0}
 sample_level_accuracies = []
 
 for tr, g_truth in zip(online_trials, online_truths):
-    decision = simulate_trial(tr, win, lap, fs, broad_filt, car_filt, broad, mask, clf, g_truth, thresh)
+    decision = simulate_trial(tr, win, lap, fs, broad_filt, s_filt, broad, mask, clf, g_truth, thresh)
     if math.isnan(decision["decision"]):
         outcomes["No Decision"] = outcomes["No Decision"] + 1
     else:
