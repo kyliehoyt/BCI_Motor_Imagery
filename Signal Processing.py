@@ -488,7 +488,7 @@ print("Electrode Type: " + str(electrode))
 
 # ------------------------------------- Loading Offline Data
 file_path = "subject_" + str(subject) + "/" + electrode + "/" + session_type + "/session_1/"
-os.chdir('/Users/satvik/Desktop/BCI_Motor_Imagery/')
+# os.chdir('/Users/satvik/Desktop/BCI_Motor_Imagery/')
 channel_path = 'chaninfo_' + electrode
 
 chaninfo = loadmat(channel_path + '.mat')[channel_path]['channels']
