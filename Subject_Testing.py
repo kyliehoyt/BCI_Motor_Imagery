@@ -30,7 +30,7 @@ electrodes = ['Gel', 'Poly']
 for sub_idx in range(4, 7):
     for e_idx in range(0,2):
         print(" Running Subject: " + str(sub_idx) + " Electrode type: " + electrodes[e_idx])
-        command = "python3 'Signal Processing.py' -subject " + str(sub_idx) + " -electrode " + electrodes[e_idx]
+        command = "python3 Signal Processing.py -subject " + str(sub_idx) + " -electrode " + electrodes[e_idx]
         print(command)
         os.system(command)
 

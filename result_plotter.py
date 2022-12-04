@@ -6,6 +6,7 @@ samples_data = pd.read_csv('sample_results.csv')
 fig = plt.figure(figsize=(3, 2))
 fig.suptitle("Sample Level Accuracy")
 index = 1
+plt.rc('axes', axisbelow=True)
 for subject_id in range(4, 7):
     gel_header = ['Class_1', 'Class_2', 'Average', 'Bias']
     poly_header = ['Class_1', 'Class_2', 'Average', 'Bias']
@@ -20,6 +21,7 @@ for subject_id in range(4, 7):
                  samples_data.iloc[subject_id - 3]['sample_bias']]
     loc = 320 + index
     plt.subplot(loc)
+    plt.grid(axis='y')
     index += 1
 
     plt.bar(gel_header, gel_data, width=0.5, align='center', color=['gray', 'gray', 'dimgray', 'lightcoral'])
@@ -27,9 +29,12 @@ for subject_id in range(4, 7):
 
     loc = 320 + index
     plt.subplot(loc)
+    plt.grid(axis='y')
     index += 1
     plt.bar(poly_header, poly_data, width=0.5, align='center', color=['gray', 'gray', 'dimgray', 'lightcoral'])
     plt.title("Subject " + str(subject_id) + " Poly")
+
+plt.subplots_adjust(hspace=0.5, wspace=0.1)
 
 plt.show()
 

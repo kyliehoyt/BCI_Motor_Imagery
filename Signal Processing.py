@@ -423,11 +423,11 @@ def cross_val(clf_name, x, y,  folds, gs=False):
 
 
 # ------------------------------------- Loading Data Parameters
-subject = 6
-electrode = 'Poly'
+subject = 5
+electrode = 'Gel'
 session_type = 'offline'
 n_chan = 13
-scripting = True
+scripting = False
 
 #### SET THIS TO FALSE IF YOU WANT TO JUST USE DEFAULT VALUES SET ABOVE #####
 take_inputs = False
@@ -506,7 +506,7 @@ for S, H in zip(runs, heads):
     s_split = list(runs2trials_split([S], [H]))
     s_split = np.array([s_j for s_j in s_split])
 
-    # Feature selection and filtering by trial
+    # Feature selection and filtering by trial - Keep for good fisher plot
     # s_temp = broad_filt.noncausal_filter(S)
     # s_split = list(runs2trials_split([s_temp], [H]))
     # s_split_filt = np.array([car_filt.apply_filter(s_j, False) for s_j in s_split])
@@ -546,12 +546,11 @@ for S, H in zip(runs, heads):
 
 x, y = build_training_data(unmasked_epochs, heads, win, step, fs, broad_filt, s_filt, broad, mask)
 clf_name = 'LDA'
-# clf = SVC(probability=True)
 
 
 # ------------------------------------- Cross Validation
-clf = cross_val(clf_name, x, y, folds=4, gs=True)
-clf.fit(x, y)
+#clf = cross_val(clf_name, x, y, folds=4, gs=False)
+#clf.fit(x, y)
 
 # ------------------------------------- Loading Online Data
 session_type = 'online'
@@ -569,14 +568,21 @@ online_trials, online_truths = runs2trials(online_runs, online_heads)
 
 
 # ------------------------------------- Retraining Between Sessions
-retraining_between_online = False
+retraining_between_online = True
+retraining_with_S1_only = True
 if retraining_between_online:
+    if retraining_with_S1_only:
+        unmasked_epochs = []
+        retraining_heads = online_heads
+    else:
+        retraining_heads = heads + online_heads
     for S, H in zip(online_runs, online_heads):
         s, truths = runs2trials([S], [H])
         unmasked_epochs.append(s)
-    x, y = build_training_data(unmasked_epochs, heads+online_heads, win, step, fs, broad_filt, s_filt,
+    x, y = build_training_data(unmasked_epochs, retraining_heads, win, step, fs, broad_filt, s_filt,
                                broad, mask)
-    clf = cross_val(clf_name, x, y, folds=7, gs=True)
+    print("Retraining between sessions")
+    clf = cross_val(clf_name, x, y, folds=7, gs=False)
     clf.fit(x, y)
     session_type = 'online'
     session_id = 2
