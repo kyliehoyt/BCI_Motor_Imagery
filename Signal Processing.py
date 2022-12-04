@@ -397,6 +397,12 @@ def cross_val(clf_name, x, y,  folds, gs=False):
         cv_results = cross_val_score(clf, x, y, scoring='accuracy', cv=cv)
         cv_mean = cv_results.mean()
         print("Mean Cross Validation Score Across Folds: ", cv_mean)
+    elif clf_name == 'SVC':
+        clf = SVC(probability=True)
+        cv = KFold(folds, shuffle=False)
+        cv_results = cross_val_score(clf, x, y, scoring='accuracy', cv=cv)
+        cv_mean = cv_results.mean()
+        print("Mean Cross Validation Score Across Folds: ", cv_mean)
 
     # Hyperparameter Optimization
     if gs:
@@ -417,6 +423,23 @@ def cross_val(clf_name, x, y,  folds, gs=False):
                     best_performer = params
             print(best_performer)
             return LinearDiscriminantAnalysis(solver=best_performer[0], store_covariance=best_performer[2], tol=best_performer[1], shrinkage=best_performer[3], priors=[0.5, 0.5])
+
+        elif clf_name == 'SVC': 
+            params = [[0.1, 1, 10, 100, 1000], [1, 0.1, 0.01, 0.001, 0.0001], ['rbf']]
+            possible_params = product(*params)
+            best_performance = 0
+            best_performer = []
+            for params in possible_params:
+                params = list(params)
+                clf = SVC(C=best_performer[0], gamma=best_performer[2], kernel=best_performer[1], probability=True)
+                clf_results = cross_val_score(clf, x, y, scoring='accuracy', cv=cv).mean()
+                print('Fitting + CV for:', params, 'Results:', clf_results)
+                if clf_results > best_performance:
+                    best_performance = clf_results
+                    best_performer = params
+            print(best_performer)
+            return SVC(C=best_performer[0], gamma=best_performer[2], kernel=best_performer[1], probability=True)
+
 
 
     return clf
@@ -465,7 +488,7 @@ print("Electrode Type: " + str(electrode))
 
 # ------------------------------------- Loading Offline Data
 file_path = "subject_" + str(subject) + "/" + electrode + "/" + session_type + "/session_1/"
-# os.chdir('/Users/satvik/Desktop/BCI_Motor_Imagery/')
+os.chdir('/Users/satvik/Desktop/BCI_Motor_Imagery/')
 channel_path = 'chaninfo_' + electrode
 
 chaninfo = loadmat(channel_path + '.mat')[channel_path]['channels']
@@ -549,8 +572,8 @@ clf_name = 'LDA'
 
 
 # ------------------------------------- Cross Validation
-#clf = cross_val(clf_name, x, y, folds=4, gs=False)
-#clf.fit(x, y)
+# clf = cross_val(clf_name, x, y, folds=4, gs=False)
+# clf.fit(x, y)
 
 # ------------------------------------- Loading Online Data
 session_type = 'online'
