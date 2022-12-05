@@ -423,8 +423,8 @@ def cross_val(clf_name, x, y,  folds, gs=False):
 
 
 # ------------------------------------- Loading Data Parameters
-subject = 5
-electrode = 'Gel'
+subject = 4
+electrode = 'Poly'
 session_type = 'offline'
 n_chan = 13
 scripting = False
@@ -509,7 +509,7 @@ for S, H in zip(runs, heads):
     # Feature selection and filtering by trial - Keep for good fisher plot
     # s_temp = broad_filt.noncausal_filter(S)
     # s_split = list(runs2trials_split([s_temp], [H]))
-    # s_split_filt = np.array([car_filt.apply_filter(s_j, False) for s_j in s_split])
+    # s_split_filt = np.array([s_filt.apply_filter(s_j, False) for s_j in s_split])
 
     plt.subplot(2, 3, i)
     plt.margins(0, 0.1)
@@ -532,6 +532,7 @@ plt.subplot(2, 3, 6)
 plt.title("log(Rank weighted sum)")
 sns.heatmap(np.log10(rank_sum_fisher), xticklabels=xlabels, yticklabels=ylabels)
 if not scripting:
+    plt.subplots_adjust(hspace=0.4, wspace=0.4)
     plt.show()
 
 mask, feats = select_features(rank_sum_fisher, xlabels, ylabels, 20)
