@@ -226,7 +226,7 @@ def run_psd_fisher_win(s, h, win, step, fs, t_filt, sp_filt, flim, ylab):
                     winflag = 0
                 else:  # if last window is shorter than win/2
                     break
-                sample = t_filt.noncausal_filter(sample)
+                sample = t_filt.causal_filter(sample)
                 sample = sp_filt.apply_filter(sample, True)
                 f, sample_psd = trial_psd(sample, fs, flim, True)
                 split_psd[j] = np.row_stack((split_psd[j], sample_psd))
@@ -340,7 +340,7 @@ def build_training_data(runs, hs, win, step, fs, t_filt, sp_filt, flim, mask):
                     winflag = 0
                 else:  # if last window is shorter than win/2
                     break
-                sample = t_filt.noncausal_filter(sample)
+                sample = t_filt.causal_filter(sample)
                 sample = sp_filt.apply_filter(sample, True)
                 f, sample_psd = trial_psd(sample, fs, flim, False)
                 x = np.row_stack((x, sample_psd.ravel()[np.flatnonzero(mask)]))
@@ -369,7 +369,7 @@ def simulate_trial(trial, win, step, fs, t_filt, sp_filt, flim, mask, clf, g_tru
             winflag = 0
         else:  # if last window is shorter than win/2
             break
-        sample_filt = t_filt.noncausal_filter(sample)
+        sample_filt = t_filt.causal_filter(sample)
         sample_filt = sp_filt.apply_filter(sample_filt, True)
         f, sample_psd = trial_psd(sample_filt, fs, flim, False)
         sample_feats = np.array(sample_psd.ravel()[np.flatnonzero(mask)]).reshape(1, -1)
@@ -447,10 +447,12 @@ def cross_val(clf_name, x, y,  folds, gs=False):
 
 # ------------------------------------- Loading Data Parameters
 subject = 4
-electrode = 'Poly'
+electrode = 'Gel'
 session_type = 'offline'
 n_chan = 13
 scripting = False
+retraining_between_online = False
+retraining_with_S1_only = True
 
 #### SET THIS TO FALSE IF YOU WANT TO JUST USE DEFAULT VALUES SET ABOVE #####
 take_inputs = False
@@ -530,7 +532,7 @@ for S, H in zip(runs, heads):
     s_split = np.array([s_j for s_j in s_split])
 
     # Feature selection and filtering by trial - Keep for good fisher plot
-    # s_temp = broad_filt.noncausal_filter(S)
+    # s_temp = broad_filt.causal_filter(S)
     # s_split = list(runs2trials_split([s_temp], [H]))
     # s_split_filt = np.array([s_filt.apply_filter(s_j, False) for s_j in s_split])
 
@@ -573,8 +575,9 @@ clf_name = 'LDA'
 
 
 # ------------------------------------- Cross Validation
-# clf = cross_val(clf_name, x, y, folds=4, gs=False)
-# clf.fit(x, y)
+if not retraining_between_online:
+    clf = cross_val(clf_name, x, y, folds=4, gs=True)
+    clf.fit(x, y)
 
 # ------------------------------------- Loading Online Data
 session_type = 'online'
@@ -592,8 +595,6 @@ online_trials, online_truths = runs2trials(online_runs, online_heads)
 
 
 # ------------------------------------- Retraining Between Sessions
-retraining_between_online = True
-retraining_with_S1_only = True
 if retraining_between_online:
     if retraining_with_S1_only:
         unmasked_epochs = []
